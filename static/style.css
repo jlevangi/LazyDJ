@@ -1,0 +1,202 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #121212;
+    color: #1DB954;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+}
+
+h1 {
+    margin: 0;
+    padding: 10px;
+    color: #1DB954;
+    font-weight: bold;
+}
+
+a, button {
+    background-color: #1DB954;
+    color: #FFFFFF;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 25px;
+    font-size: 20px;
+    padding: 15px 30px;
+}
+
+a:hover, button:hover {
+    background-color: #1ED760;
+}
+
+.header-link {
+    background-color: transparent;
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 25px;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 15px 30px;
+    border: none;
+}
+
+.header-link:hover {
+    background-color: #1ED760;
+}
+
+.header-container {
+    background-color: #1DB954;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    width: 100%;
+}
+
+.header {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.content-container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    width: 60%;
+    padding: 20px;
+}
+
+form {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+}
+
+input[type="text"] {
+    padding: 20px;
+    flex-grow: 1;
+    font-size: 18px;
+    border-radius: 5px 0 0 5px;
+    border: none;
+    min-width: 0;
+}
+
+button[type="submit"] {
+    font-size: 18px;
+    padding: 20px 30px;
+    border-radius: 0 5px 5px 0;
+    border: none;
+}
+
+.results {
+    margin-top: 20px;
+    width: 100%;
+}
+
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #282828;
+    padding: 10px;
+    margin: 5px;
+    border-radius: 5px;
+}
+
+.result-item p {
+    margin: 0;
+    flex-grow: 1;
+    color: #FFFFFF; /* Ensuring the text is readable on dark background */
+}
+
+.queue-container {
+    width: 40%;
+    background-color: #282828;
+    padding: 20px;
+    border-radius: 5px;
+    margin-right: 20px;
+}
+
+.queue-item {
+    margin: 5px 0;
+    padding: 10px;
+    background-color: #2e2e2e;
+    color: white;
+    border-radius: 5px;
+}
+
+#notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #1DB954;
+    color: white;
+    padding: 30px 50px; /* Increased padding for larger notification */
+    border-radius: 25px;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    font-size: 24px; /* Increased font size */
+    text-align: center; /* Center the text */
+    max-width: 80%; /* Ensure it doesn't get too wide on large screens */
+}
+
+#notification.show {
+    opacity: 1;
+}
+
+.content-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 20px;
+}
+
+.main-content, .queue-container {
+    box-sizing: border-box;
+}
+
+.main-content {
+    width: 60%;
+    padding: 20px;
+}
+
+.queue-container {
+    width: 35%;
+    padding: 20px;
+}
+
+.login-container {
+    margin-top: 20px; /* Adjust this value to change the vertical spacing */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%; /* Make the container take up the full height */
+}
+
+.login-container a {
+    text-decoration: none;
+    background-color: #1DB954;
+    color: white;
+    padding: 15px 30px;
+    border-radius: 25px;
+    font-size: 20px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.login-container a:hover {
+    background-color: #1ED760;
+}

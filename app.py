@@ -1,0 +1,99 @@
+from flask import Flask, request, render_template, redirect, url_for, session, jsonify, send_from_directory
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+import time
+from flask_session import Session
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
+
+app = Flask(__name__)
+
+app.secret_key = os.getenv('SECRET_KEY')
+
+# Configure server-side session
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
+
+# Spotify API credentials
+CLIENT_ID = os.getenv('SPOTIPY_CLIENT_ID')
+CLIENT_SECRET = os.getenv('SPOTIPY_CLIENT_SECRET')
+REDIRECT_URI = os.getenv('SPOTIPY_REDIRECT_URI')
+
+# Spotify authorization scope
+SCOPE = 'user-modify-playback-state user-read-playback-state'
+
+sp_oauth = SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI, scope=SCOPE)
+
+# Store recently added tracks
+recent_tracks = {}
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/login')
+def login():
+    auth_url = sp_oauth.get_authorize_url()
+    return redirect(auth_url)
+
+@app.route('/callback')
+def callback():
+    code = request.args.get('code')
+    token_info = sp_oauth.get_access_token(code)
+    session['token_info'] = token_info
+    return redirect(url_for('search'))
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    token_info = session.get('token_info')
+    if not token_info:
+        return redirect(url_for('index'))
+
+    query = request.args.get('query')
+
+    tracks = []
+    if query:
+        sp = spotipy.Spotify(auth=token_info['access_token'])
+        results = sp.search(q=query, type='track', limit=10)
+        tracks = results['tracks']['items']
+
+    return render_template('search.html', token=token_info['access_token'], tracks=tracks)
+
+@app.route('/queue', methods=['POST'])
+def queue():
+    token_info = session.get('token_info')
+    if not token_info:
+        return redirect(url_for('index'))
+
+    track_uri = request.form['track_uri']
+    current_time = time.time()
+    
+    # Check if track has been added within the last 20 minutes
+    if track_uri in recent_tracks and current_time - recent_tracks[track_uri] < 1200:
+        return jsonify({"status": "error", "message": "This track has already been added recently."})
+
+    recent_tracks[track_uri] = current_time
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    sp.add_to_queue(track_uri)
+    return jsonify({"status": "success", "message": "Track added to queue!"})
+
+@app.route('/current_queue', methods=['GET'])
+def current_queue():
+    token_info = session.get('token_info')
+    if not token_info:
+        return redirect(url_for('index'))
+
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    queue_info = sp._get('me/player/queue')
+    queue = [{'name': track['name'], 'artists': ', '.join([artist['name'] for artist in track['artists']])} for track in queue_info['queue']]
+    
+    return jsonify(queue)
+
+@app.route('/static/<path:path>')
+def send_static(path):
+    return send_from_directory('static', path)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)

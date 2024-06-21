@@ -1,0 +1,21 @@
+{
+    "name": "LazyDJ",
+    "short_name": "Lazy DJ",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#121212",
+    "theme_color": "#1DB954",
+    "description": "Queue your favorite songs to Spotify.",
+    "icons": [
+        {
+            "src": "/static/icons/icon-192x192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/static/icons/icon-512x512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                })
+                .catch(error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+        }
+
+        function addTrackToQueue(track_uri) {
+            fetch('/queue', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'track_uri': track_uri,
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showNotification(data.message, data.status);
+                if (data.status === 'success') {
+                    fetchQueue();
+                    setTimeout(() => {
+                        window.location.href = "/search";
+                    }, 2000);
+                }
+            });
+        }
+
+        function showNotification(message, status) {
+            const notification = document.getElementById('notification');
+            notification.innerText = message;
+            notification.style.backgroundColor = status === 'success' ? '#1DB954' : '#E74C3C';
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+
+        function fetchQueue() {
+            fetch('/current_queue')
+            .then(response => response.json())
+            .then(data => {
+                const queueContainer = document.getElementById('queue');
+                queueContainer.innerHTML = '';
+                data.slice(0, 11).forEach(track => {
+                    const trackElement = document.createElement('div');
+                    trackElement.className = 'queue-item';
+                    trackElement.innerText = `${track.name} by ${track.artists}`;
+                    queueContainer.appendChild(trackElement);
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchQueue();
+        });
+    </script>
+</head>
+<body>
+    <div class="header-container">
+        <div class="header">
+            <h1><a href="/search" class="header-link">Search for a song to add to the Queue!</a></h1>
+        </div>
+    </div>
+    <div class="content-container">
+        <div class="main-content">
+            <form action="/search" method="get">
+                <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="Search for a song">
+                <button type="submit">Search</button>
+            </form>
+            <div class="results">
+                {% for track in tracks %}
+                <div class="result-item">
+                    <p>{{ track['name'] }} by {{ track['artists'][0]['name'] }}</p>
+                    <button onclick="addTrackToQueue('{{ track['uri'] }}')">Add to Queue</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="queue-container">
+            <h2>Up Next</h2>
+            <div id="queue" class="queue">
+                <!-- Queue items will be populated here -->
+            </div>
+        </div>
+    </div>
+    <div id="notification"></div>
+</body>
+</html>
