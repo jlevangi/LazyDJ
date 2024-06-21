@@ -6,6 +6,7 @@ The Lazy DJ is a web application that allows users to search for songs and add t
 
 - Search for songs and add them to your Spotify queue.
 - View the next songs in your queue.
+- Prevents queueing the same song with a 20 minute period.
 - Responsive design and PWA capabilities for a native app-like experience.
 
 ## Requirements
@@ -59,8 +60,8 @@ The Lazy DJ is a web application that allows users to search for songs and add t
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/spotify-queue-manager.git
-    cd spotify-queue-manager
+    git clone https://github.com/JLeVangie/LazyDJ.git
+    cd LazyDJ
     ```
 
 2. Create a `.env` file in the root directory of the project and add your Spotify API credentials:
