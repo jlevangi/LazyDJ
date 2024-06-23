@@ -2,4 +2,4 @@
 /flask_session
 /cache
 *.cache
-/myenv
+/venv
