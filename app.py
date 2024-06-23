@@ -59,7 +59,18 @@ def search():
         results = sp.search(q=query, type='track', limit=10)
         tracks = results['tracks']['items']
 
-    return render_template('search.html', token=token_info['access_token'], tracks=tracks)
+    track_info = []
+    for track in tracks:
+        track_data = {
+            'name': track['name'],
+            'artists': ', '.join([artist['name'] for artist in track['artists']]),
+            'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
+            'uri': track['uri']
+        }
+        track_info.append(track_data)
+
+    return render_template('search.html', token=token_info['access_token'], tracks=track_info)
+
 
 @app.route('/queue', methods=['POST'])
 def queue():
