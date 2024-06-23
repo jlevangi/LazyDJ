@@ -84,8 +84,11 @@
             <div class="results">
                 {% for track in tracks %}
                 <div class="result-item">
-                    <p>{{ track['name'] }} by {{ track['artists'][0]['name'] }}</p>
-                    <button onclick="addTrackToQueue('{{ track['uri'] }}')">Add to Queue</button>
+                    {% if track.album_art %}
+                    <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
+                    {% endif %}
+                    <p>{{ track.name }} by {{ track.artists }}</p>
+                    <button onclick="addTrackToQueue('{{ track.uri }}')">Add to Queue</button>
                 </div>
                 {% endfor %}
             </div>
