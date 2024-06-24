@@ -24,9 +24,14 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Extract release version
-        if: startsWith(github.ref, 'refs/heads/release/')
         id: extract_version
-        run: echo "::set-output name=VERSION::${GITHUB_REF#refs/heads/release/}"
+        run: |
+          if [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
+            VERSION=${GITHUB_REF#refs/heads/release/}
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+          else
+            echo "VERSION=latest" >> $GITHUB_ENV
+          fi
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
@@ -35,4 +40,4 @@ jobs:
           push: true
           tags: |
             jlevangie/lazydj:latest
-            jlevangie/lazydj:${{ steps.extract_version.outputs.VERSION }}
+            jlevangie/lazydj:${{ env.VERSION }}
