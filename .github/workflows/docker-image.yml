@@ -21,7 +21,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: your-dockerhub-username/your-repo-name
+        images: jlevangie/lazydj
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
