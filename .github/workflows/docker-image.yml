@@ -30,10 +30,3 @@ jobs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-
-    - name: Create matching GitHub tag
-      run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
-        git tag -a ${{ github.event.release.tag_name }} -m "Release ${{ github.event.release.tag_name }}"
-        git push origin ${{ github.event.release.tag_name }}
