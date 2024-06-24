@@ -30,7 +30,7 @@ jobs:
 
     - name: Build the Docker image
       run: |
-        docker build . --file Dockerfile --tag jlevangie/lazydj:${{ env.IMAGE_TAG }} --tag jlevangie/lazydj:latest
+        docker build --no-cache . --file Dockerfile --tag jlevangie/lazydj:${{ env.IMAGE_TAG }} --tag jlevangie/lazydj:latest
 
     - name: Push the Docker image with timestamp tag
       run: docker push jlevangie/lazydj:${{ env.IMAGE_TAG }}
