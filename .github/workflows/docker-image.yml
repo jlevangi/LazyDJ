@@ -26,12 +26,14 @@ jobs:
       - name: Extract release version
         id: extract_version
         run: |
+          echo "GITHUB_REF=${GITHUB_REF}"
           if [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
             VERSION=${GITHUB_REF#refs/heads/release/}
             echo "VERSION=$VERSION" >> $GITHUB_ENV
           else
             echo "VERSION=latest" >> $GITHUB_ENV
           fi
+          echo "Extracted version: $VERSION"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
