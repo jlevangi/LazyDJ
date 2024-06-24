@@ -18,36 +18,36 @@
         }
 
         function addTrackToQueue(track_uri) {
-            fetch('/queue', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    'track_uri': track_uri,
-                })
+        fetch('/queue', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'track_uri': track_uri,
             })
-            .then(response => response.json())
-            .then(data => {
-                showNotification(data.message, data.status);
-                if (data.status === 'success') {
-                    fetchQueue();
-                    setTimeout(() => {
-                        window.location.href = "https://lazydj.levangie.org/search";
-                    }, 2000); // Adjust the delay as needed
-                }
-            });
-        }
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.message, data.status);
+            if (data.status === 'success') {
+                fetchQueue();
+                setTimeout(() => {
+                    window.location.href = "https://lazydj.levangie.org/search";
+                }, 2000); // Adjust the delay as needed
+            }
+        });
+    }
 
-        function showNotification(message, status) {
-            const notification = document.getElementById('notification');
-            notification.innerText = message;
-            notification.style.backgroundColor = status === 'success' ? '#1DB954' : '#E74C3C';
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 2000);
-        }
+    function showNotification(message, status) {
+        const notification = document.getElementById('notification');
+        notification.innerText = message;
+        notification.style.backgroundColor = status === 'success' ? '#1DB954' : '#E74C3C';
+        notification.classList.add('show');
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 2000);
+    }
 
         function fetchQueue() {
             fetch('/current_queue')

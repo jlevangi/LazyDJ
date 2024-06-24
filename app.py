@@ -104,8 +104,15 @@ def queue():
 
     recent_tracks[track_uri] = current_time
     sp = spotipy.Spotify(auth=token_info['access_token'])
-    sp.add_to_queue(track_uri)
-    return jsonify({"status": "success", "message": "Track added to queue!"})
+    
+    try:
+        sp.add_to_queue(track_uri)
+        return jsonify({"status": "success", "message": "Track added to queue!"})
+    except spotipy.exceptions.SpotifyException as e:
+        if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in e.reason:
+            return jsonify({"status": "error", "message": "No active device found. Please play a song on Spotify and try again."})
+        else:
+            return jsonify({"status": "error", "message": "An error occurred. Please try again."})
 
 # Update the current_queue function to distinguish between user-added tracks and radio tracks
 @app.route('/current_queue', methods=['GET'])
