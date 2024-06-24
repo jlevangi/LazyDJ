@@ -35,6 +35,14 @@ a:hover, button:hover {
     background-color: #1ED760;
 }
 
+.login-container {
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: flex-start; /* Align items at the start */
+    height: 100vh; /* Take full viewport height */
+    padding-top: 25vh; /* Add padding to push the content 1/4 from the top */
+}
+
 .header-link {
     background-color: transparent;
     color: white;
@@ -72,8 +80,8 @@ a:hover, button:hover {
     font-size: 20px;
     padding: 10px 20px;
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 20px;
+    right: 30px;
 }
 
 .tip-button:hover {
@@ -94,6 +102,7 @@ a:hover, button:hover {
     display: flex;
     flex-direction: column; /* Column layout */
     margin-right: 0; /* Remove right margin */
+    padding-right: 20px;
 }
 
 .search-bar-container {

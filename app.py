@@ -114,7 +114,6 @@ def queue():
         else:
             return jsonify({"status": "error", "message": "An error occurred. Please try again."})
         
-# Update the current_queue function to distinguish between user-added tracks and radio tracks.
 @app.route('/current_queue', methods=['GET'])
 def current_queue():
     token_info = get_token()
@@ -122,30 +121,41 @@ def current_queue():
         return redirect(url_for('index'))
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
-    queue_info = sp._get('me/player/queue')
-    current_track = sp.currently_playing()
     
-    user_queue = []
-    radio_queue = []
-    for track in queue_info['queue']:
-        track_info = {
-            'name': track['name'],
-            'artists': ', '.join([artist['name'] for artist in track['artists']]),
-            'uri': track['uri']
-        }
-        if track['uri'] in recent_tracks:
-            user_queue.append(track_info)
-        else:
-            radio_queue.append(track_info)
+    try:
+        queue_info = sp._get('me/player/queue')
+        current_track = sp.currently_playing()
 
-    return jsonify({
-        'current_track': {
-            'name': current_track['item']['name'],
-            'artists': ', '.join([artist['name'] for artist in current_track['item']['artists']])
-        } if current_track and current_track['is_playing'] else None,
-        'user_queue': user_queue,
-        'radio_queue': radio_queue
-    })
+        user_queue = []
+        radio_queue = []
+        for track in queue_info['queue']:
+            track_info = {
+                'name': track['name'],
+                'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                'uri': track['uri']
+            }
+            if track['uri'] in recent_tracks:
+                user_queue.append(track_info)
+            else:
+                radio_queue.append(track_info)
+
+        return jsonify({
+            'current_track': {
+                'name': current_track['item']['name'],
+                'artists': ', '.join([artist['name'] for artist in current_track['item']['artists']])
+            } if current_track and current_track['is_playing'] else None,
+            'user_queue': user_queue,
+            'radio_queue': radio_queue
+        })
+    except spotipy.exceptions.SpotifyException as e:
+        if e.http_status == 401:
+            token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+            session['token_info'] = token_info
+            session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
+            return redirect(url_for('current_queue'))
+        else:
+            return jsonify({"status": "error", "message": "An error occurred. Please try again."})
+
 
 @app.route('/recommendations', methods=['GET'])
 def recommendations():
@@ -173,6 +183,15 @@ def recommendations():
 
     return jsonify(track_info)
 
+@app.errorhandler(spotipy.exceptions.SpotifyException)
+def handle_spotify_exception(error):
+    if error.http_status == 401:
+        token_info = get_token()
+        if token_info:
+            return redirect(request.url)
+        else:
+            return redirect(url_for('index'))
+    return jsonify({"status": "error", "message": "An error occurred. Please try again."}), error.http_status
 
 @app.route('/static/<path:path>')
 def send_static(path):
