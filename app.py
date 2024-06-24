@@ -113,8 +113,8 @@ def queue():
             return jsonify({"status": "error", "message": "No active device found. Please play a song on Spotify and try again."})
         else:
             return jsonify({"status": "error", "message": "An error occurred. Please try again."})
-
-# Update the current_queue function to distinguish between user-added tracks and radio tracks
+        
+# Update the current_queue function to distinguish between user-added tracks and radio tracks.
 @app.route('/current_queue', methods=['GET'])
 def current_queue():
     token_info = get_token()
