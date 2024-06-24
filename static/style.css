@@ -20,14 +20,6 @@ h2, h3 {
     color: #FFFFFF;
 }
 
-.login-container {
-    display: flex;
-    justify-content: center; /* Center horizontally */
-    align-items: flex-start; /* Align items at the start */
-    height: 100vh; /* Take full viewport height */
-    padding-top: 25vh; /* Add padding to push the content 1/4 from the top */
-}
-
 a, button {
     background-color: #1DB954;
     color: #FFFFFF;
