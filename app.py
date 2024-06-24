@@ -43,11 +43,27 @@ def callback():
     code = request.args.get('code')
     token_info = sp_oauth.get_access_token(code)
     session['token_info'] = token_info
+    session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
     return redirect(url_for('search'))
+
+def get_token():
+    token_info = session.get('token_info', None)
+    if not token_info:
+        return None
+
+    now = int(time.time())
+    is_token_expired = token_info['expires_at'] - now < 60
+
+    if is_token_expired:
+        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+        session['token_info'] = token_info
+        session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
+
+    return token_info
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
-    token_info = session.get('token_info')
+    token_info = get_token()
     if not token_info:
         return redirect(url_for('index'))
 
@@ -72,9 +88,10 @@ def search():
     return render_template('search.html', token=token_info['access_token'], tracks=track_info)
 
 
+# Update the queue function to set a flag
 @app.route('/queue', methods=['POST'])
 def queue():
-    token_info = session.get('token_info')
+    token_info = get_token()
     if not token_info:
         return redirect(url_for('index'))
 
@@ -90,17 +107,65 @@ def queue():
     sp.add_to_queue(track_uri)
     return jsonify({"status": "success", "message": "Track added to queue!"})
 
+# Update the current_queue function to distinguish between user-added tracks and radio tracks
 @app.route('/current_queue', methods=['GET'])
 def current_queue():
-    token_info = session.get('token_info')
+    token_info = get_token()
     if not token_info:
         return redirect(url_for('index'))
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
     queue_info = sp._get('me/player/queue')
-    queue = [{'name': track['name'], 'artists': ', '.join([artist['name'] for artist in track['artists']])} for track in queue_info['queue']]
+    current_track = sp.currently_playing()
     
-    return jsonify(queue)
+    user_queue = []
+    radio_queue = []
+    for track in queue_info['queue']:
+        track_info = {
+            'name': track['name'],
+            'artists': ', '.join([artist['name'] for artist in track['artists']]),
+            'uri': track['uri']
+        }
+        if track['uri'] in recent_tracks:
+            user_queue.append(track_info)
+        else:
+            radio_queue.append(track_info)
+
+    return jsonify({
+        'current_track': {
+            'name': current_track['item']['name'],
+            'artists': ', '.join([artist['name'] for artist in current_track['item']['artists']])
+        } if current_track and current_track['is_playing'] else None,
+        'user_queue': user_queue,
+        'radio_queue': radio_queue
+    })
+
+@app.route('/recommendations', methods=['GET'])
+def recommendations():
+    token_info = get_token()
+    if not token_info:
+        return redirect(url_for('index'))
+
+    query = request.args.get('query')
+    if not query:
+        return jsonify([])
+
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    results = sp.search(q=query, type='track', limit=10)
+    tracks = results['tracks']['items']
+
+    track_info = []
+    for track in tracks:
+        track_data = {
+            'name': track['name'],
+            'artists': ', '.join([artist['name'] for artist in track['artists']]),
+            'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
+            'uri': track['uri']
+        }
+        track_info.append(track_data)
+
+    return jsonify(track_info)
+
 
 @app.route('/static/<path:path>')
 def send_static(path):
