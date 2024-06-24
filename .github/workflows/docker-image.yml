@@ -24,8 +24,12 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    - name: Set image tag
+      id: vars
+      run: echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_ENV
+
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag jlevangie/lazydj:$(date +%s)
+      run: docker build . --file Dockerfile --tag jlevangie/lazydj:${{ env.IMAGE_TAG }}
 
     - name: Push the Docker image
-      run: docker push jlevangie/lazydj:$(date +%s)
+      run: docker push jlevangie/lazydj:${{ env.IMAGE_TAG }}
