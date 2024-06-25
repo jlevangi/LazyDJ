@@ -279,7 +279,7 @@ a:hover, button:hover {
     margin-top: 20px;
 }
 
-.venmo-qr-code {
+.tip-qr-code {
     max-width: 300px; /* Increased from 200px to accommodate the larger image */
     width: 100%;
     height: auto;

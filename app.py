@@ -13,9 +13,9 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 
 if app.debug:
-    VENMO_QR_CODE_PATH = '/static/venmo-qr.png'
+    VENMO_QR_CODE_PATH = '/static/tip-qr.png'
 else:
-    VENMO_QR_CODE_PATH = os.environ.get('VENMO_QR_CODE_PATH', '/app/qr_code.png')
+    VENMO_QR_CODE_PATH = os.environ.get('TIP_QR_CODE_PATH', '/app/qr_code.png')
 
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -93,7 +93,7 @@ def search():
     return render_template('search.html', 
                            token=token_info['access_token'], 
                            tracks=track_info, 
-                           venmo_qr_code_path=VENMO_QR_CODE_PATH)
+                           tip_qr_code_path=TIP_QR_CODE_PATH)
 
 
 # Update the queue function to set a flag
