@@ -127,7 +127,7 @@ a:hover, button:hover {
 
 .search-bar button[type="submit"] {
     padding: 15px 25px; /* Increase padding for thicker button */
-    font-size: 20px; /* Increase font size */
+    font-size: 20px; 
     border-radius: 0 5px 5px 0;
     border: none;
     background-color: #1DB954;
@@ -172,7 +172,7 @@ a:hover, button:hover {
     padding: 20px;
     border-radius: 5px;
     align-self: flex-start;
-    margin-top: 20px; /* Add margin above the queue container */
+    margin-top: 20px;
 }
 
 .queue-item {
@@ -207,9 +207,6 @@ a:hover, button:hover {
     opacity: 1;
 }
 
-/* ... (existing styles) ... */
-
-/* Add these new styles for the modal */
 .modal {
     display: none;
     position: fixed;
