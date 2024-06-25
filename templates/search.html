@@ -134,21 +134,49 @@
                     fetchRecommendations(query);
                 }
             });
+
+            // New code for the modal
+            const modal = document.getElementById('tipModal');
+            const btn = document.getElementById('tipButton');
+            const span = document.getElementsByClassName('close')[0];
+
+            btn.onclick = function() {
+                modal.style.display = 'block';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+            }
+
+            span.onclick = function() {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                    }, 300);
+                }
+            }
         });
     </script>
 </head>
 <body>
     <div class="header-container">
         <div class="header">
-            <h1><a href="/search" class="header-link">Search for a song to add to the Queue!</a></h1>
-            <button class="tip-button">Accepting Tips!</button>
+            <h1><a href="/search" class="header-link">The Lazy DJ</a></h1>
+            <button class="tip-button" id="tipButton">Accepting Tips!</button>
         </div>
     </div>
     <div class="content-container">
         <div class="main-content">
             <div class="search-bar-container">
                 <form action="/search" method="get" class="search-bar">
-                    <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="Search for a song">
+                    <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="Search for a song to add to the queue">
                     <button type="submit">Search</button>
                 </form>
             </div>
@@ -172,6 +200,18 @@
         </div>
     </div>
     
+    <div id="tipModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Tip the Lazy DJ</h2>
+            <p>Thank you for the tip! Your song may even get bumped to the top 😉</p>
+            <div class="qr-code-container">
+                <img src="{{ tip_qr_code_path }}" alt="Tip QR Code Placeholder" class="tip-qr-code">                
+                <p>Scan this QR code to send a tip!</p>
+            </div>
+        </div>
+    </div>
+
     <div id="notification"></div>
 </body>
 </html>
