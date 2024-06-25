@@ -203,15 +203,18 @@
     <div id="tipModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Tip the Lazy DJ</h2>
-            <p>Your song may even get bumped to the top 😉</p>
+            <h2>Support The Lazy DJ</h2>
+            <p>Your song just may get bumped to the top 😉</p>
             <div class="qr-code-container">
-                <img src="{{ tip_qr_code_path }}" alt="Tip QR Code Placeholder" class="tip-qr-code">                
-                <p>Scan this QR code to send a tip!</p>
+                {% if tip_qr_code_path %}
+                    <img src="{{ tip_qr_code_path }}" alt="Tip QR Code Placeholder" class="tip-qr-code">
+                    <p>Scan this QR code to tip!</p>
+                {% else %}
+                    <p>Tip QR code not available.</p>
+                {% endif %}
             </div>
         </div>
     </div>
-
     <div id="notification"></div>
 </body>
 </html>

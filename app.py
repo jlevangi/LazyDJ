@@ -17,6 +17,12 @@ if app.debug:
 else:
     TIP_QR_CODE_PATH = os.environ.get('TIP_QR_CODE_PATH', '/qr/tip-qr.png')
 
+def qr_code_exists():
+    """Check if the QR code file exists."""
+    if TIP_QR_CODE_PATH.startswith('/static/'):
+        return os.path.exists(os.path.join(app.root_path, TIP_QR_CODE_PATH[1:]))
+    return os.path.exists(TIP_QR_CODE_PATH)
+
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
@@ -90,10 +96,12 @@ def search():
         }
         track_info.append(track_data)
 
+    qr_code_available = qr_code_exists()
+    
     return render_template('search.html', 
                            token=token_info['access_token'], 
                            tracks=track_info, 
-                           tip_qr_code_path=TIP_QR_CODE_PATH)
+                           tip_qr_code_path=TIP_QR_CODE_PATH if qr_code_available else None)
 
 
 # Update the queue function to set a flag
