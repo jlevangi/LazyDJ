@@ -13,9 +13,9 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 
 if app.debug:
-    VENMO_QR_CODE_PATH = '/static/tip-qr.png'
+    TIP_QR_CODE_PATH = '/static/tip-qr.png'
 else:
-    VENMO_QR_CODE_PATH = os.environ.get('TIP_QR_CODE_PATH', '/app/qr_code.png')
+    TIP_QR_CODE_PATH = os.environ.get('TIP_QR_CODE_PATH', '/qr/tip-qr.png')
 
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
