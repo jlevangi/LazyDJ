@@ -81,10 +81,7 @@ For testing the QR code feature during development:
 
 ## Deployment
 
-When deploying to production:
-1. Ensure all environment variables are properly set in your production environment
-2. Set `TIP_QR_CODE_PATH` to the appropriate path in your production setup
-3. Make sure to run the application with a production-ready WSGI server like Gunicorn
+1. Ensure all environment variables are properly set.
 
 ### Using Docker
 
