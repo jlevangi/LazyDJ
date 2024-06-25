@@ -85,12 +85,21 @@
                     nowPlayingLabel.innerText = 'Up Next';
                     queueContainer.appendChild(nowPlayingLabel);
 
-                    data.radio_queue.forEach(track => {
+                    // Limit to 6 tracks
+                    data.radio_queue.slice(0, 6).forEach(track => {
                         const trackElement = document.createElement('div');
                         trackElement.className = 'queue-item';
                         trackElement.innerText = `${track.name} by ${track.artists}`;
                         queueContainer.appendChild(trackElement);
                     });
+
+                    // If there are more than 6 tracks, add an indicator
+                    if (data.radio_queue.length > 6) {
+                        const moreTracksElement = document.createElement('div');
+                        moreTracksElement.className = 'queue-item more-tracks';
+                        moreTracksElement.innerText = `+ ${data.radio_queue.length - 6} more tracks`;
+                        queueContainer.appendChild(moreTracksElement);
+                    }
                 }
             });
         }
