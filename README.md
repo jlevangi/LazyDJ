@@ -35,13 +35,28 @@ Before you begin, ensure you have met the following requirements:
    cd lazy-dj
    ```
 
-2. Install the required packages:
+2. Create a virtual environment:
+   ```
+   python3 -m venv venv
+   ```
+
+3. Activate the virtual environment:
+   - On Windows:
+     ```
+     venv\Scripts\activate
+     ```
+   - On macOS and Linux:
+     ```
+     source venv/bin/activate
+     ```
+
+4. Install the required packages:
    ```
    pip install -r requirements.txt
    ```
-   1. NOTE: You may need to add Flask to your `$PATH` variable: `export PATH=$PATH:/home/USERNAME/.local/bin`
+   NOTE: You may need to add Flask to your `$PATH` variable: `export PATH=$PATH:/home/USERNAME/.local/bin`
 
-3. Set up your environment variables. Create a `.env` file in the root directory with the following contents ([example.env provided](./example.env)):
+5. Set up your environment variables. Create a `.env` file in the root directory with the following contents ([example.env provided](./example.env)):
     ```
     SPOTIPY_CLIENT_ID=your_spotify_client_id
     SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
@@ -50,31 +65,24 @@ Before you begin, ensure you have met the following requirements:
     TIP_QR_CODE_PATH=/tip-qr.png #Optional
     ```
 
-4. Create a `.env` file in the root directory of the project and add your Spotify API credentials:
-    <!-- I'm confused by needing 2 .env files and where they actually go. -->
-    ```dotenv
-    SECRET_KEY=your_secret_key
-    SPOTIPY_CLIENT_ID=your_spotify_client_id
-    SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
-    SPOTIPY_REDIRECT_URI=your_spotify_redirect_uri
-    TIP_QR_CODE_PATH=/tip-qr.png #Optional
-    ```
-## Usage
+### Usage
 
-1. Start the Flask server:
+1. Ensure your virtual environment is activated.
+
+2. Start the Application:
    ```
    flask run
    ```
 
-2. Open a web browser and navigate to `http://localhost:5000`
+3. Open a web browser and navigate to `http://localhost:5000`
 
-3. Log in with your Spotify account
+4. Log in with your Spotify account
 
-4. Search for songs and add them to the queue
+5. Start playing music from any Spotify clien
 
-5. (Optional) Set up a device to play the Spotify queue
+6. Search for songs and add them to the queue
 
-## Development
+### Development
 
 To run the app in development mode with debug features enabled:
 
@@ -86,11 +94,7 @@ For testing the QR code feature during development:
 1. Place a test QR code image in the `static` folder (e.g., `static/tip-qr.png`)
 2. Set the `TIP_QR_CODE_PATH` in your `.env` file to `/static/tip-qr.png`
 
-## Deployment
-
-1. Ensure all environment variables are properly set.
-
-### Using Docker
+## Using Docker
 
 1. Clone the repository:
 
@@ -121,11 +125,6 @@ For testing the QR code feature during development:
 ## PWA Features
 
 To enable PWA features, the app includes a `manifest.json` and a `service-worker.js` file. When you open the app in a browser, you should see an option to install it as a web app. This allows for a native app-like experience, including being able to launch the app in full-screen mode.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
 
 ## Contributing
 
