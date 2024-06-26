@@ -65,11 +65,11 @@ Before you begin, ensure you have met the following requirements:
     TIP_QR_CODE_PATH=/tip-qr.png #Optional
     ```
 
-## Usage
+### Usage
 
 1. Ensure your virtual environment is activated.
 
-2. Start the Flask server:
+2. Start the Application:
    ```
    flask run
    ```
@@ -78,11 +78,11 @@ Before you begin, ensure you have met the following requirements:
 
 4. Log in with your Spotify account
 
-5. Search for songs and add them to the queue
+5. Start playing music from any Spotify clien
 
-6. (Optional) Set up a device to play the Spotify queue
+6. Search for songs and add them to the queue
 
-## Development
+### Development
 
 To run the app in development mode with debug features enabled:
 
@@ -94,11 +94,7 @@ For testing the QR code feature during development:
 1. Place a test QR code image in the `static` folder (e.g., `static/tip-qr.png`)
 2. Set the `TIP_QR_CODE_PATH` in your `.env` file to `/static/tip-qr.png`
 
-## Deployment
-
-1. Ensure all environment variables are properly set.
-
-### Using Docker
+## Using Docker
 
 1. Clone the repository:
 
