@@ -39,7 +39,7 @@ Before you begin, ensure you have met the following requirements:
    ```
    pip install -r requirements.txt
    ```
-   1. NOTE: You may need to add Flask to your `$PATH` variable: `export PATH=$PATH:/home/dstricke/.local/bin`
+   1. NOTE: You may need to add Flask to your `$PATH` variable: `export PATH=$PATH:/home/USERNAME/.local/bin`
 
 3. Set up your environment variables. Create a `.env` file in the root directory with the following contents ([example.env provided](./example.env)):
     ```
