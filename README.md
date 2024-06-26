@@ -15,7 +15,14 @@ The app is built with Flask and can be run as a Progressive Web App (PWA).
 
 Before you begin, ensure you have met the following requirements:
 - Python 3.7+
-- A Spotify Developer account and application
+    ```Bash
+    sudo apt install python3
+    sudo apt install python3-pip
+    ```
+- A [Spotify Developer account](https://developer.spotify.com/) and [application](https://developer.spotify.com/dashboard/create)
+    - Set "redirect URL" to be http://localhost:5000/callback for easy Docker deploy or create a custom DNS entry
+    - Check `Web API`
+    - Check `Web Playback SDK`
 - Docker (optional, for containerized deployment)
 
 ## Installation
@@ -32,8 +39,9 @@ Before you begin, ensure you have met the following requirements:
    ```
    pip install -r requirements.txt
    ```
+   1. NOTE: You may need to add Flask to your `$PATH` variable: `export PATH=$PATH:/home/dstricke/.local/bin`
 
-3. Set up your environment variables. Create a `.env` file in the root directory with the following contents:
+3. Set up your environment variables. Create a `.env` file in the root directory with the following contents ([example.env provided](./example.env)):
     ```
     SPOTIPY_CLIENT_ID=your_spotify_client_id
     SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
@@ -43,14 +51,13 @@ Before you begin, ensure you have met the following requirements:
     ```
 
 4. Create a `.env` file in the root directory of the project and add your Spotify API credentials:
-
+    <!-- I'm confused by needing 2 .env files and where they actually go. -->
     ```dotenv
     SECRET_KEY=your_secret_key
     SPOTIPY_CLIENT_ID=your_spotify_client_id
     SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
     SPOTIPY_REDIRECT_URI=your_spotify_redirect_uri
     TIP_QR_CODE_PATH=/tip-qr.png #Optional
-
     ```
 ## Usage
 

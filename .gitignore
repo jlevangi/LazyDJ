@@ -4,3 +4,4 @@
 *.cache
 /venv
 *venmo*
+/__pycache__
