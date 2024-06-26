@@ -31,7 +31,7 @@ Before you begin, ensure you have met the following requirements:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/lazy-dj.git
+   git clone https://github.com/JPLeVangie/lazy-dj.git
    cd lazy-dj
    ```
 
