@@ -100,31 +100,69 @@ For testing the QR code feature during development:
 
 ## Using Docker
 
-1. Clone the repository:
+### Option 1: Build from source
 
-    ```bash
-    git clone https://github.com/JLeVangie/LazyDJ.git
-    cd LazyDJ
-    ```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/JLeVangie/LazyDJ.git
+   cd LazyDJ
+   ```
 
 2. Create a `.env` file in the root directory of the project and add your Spotify API credentials:
+   ```dotenv
+   SECRET_KEY=your_secret_key
+   SPOTIPY_CLIENT_ID=your_spotify_client_id
+   SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
+   SPOTIPY_REDIRECT_URI=your_spotify_redirect_uri
+   TIP_QR_CODE_PATH=/tip-qr.png #Optional
+   ```
 
-    ```dotenv
-    SECRET_KEY=your_secret_key
-    SPOTIPY_CLIENT_ID=your_spotify_client_id
-    SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
-    SPOTIPY_REDIRECT_URI=your_spotify_redirect_uri
-    TIP_QR_CODE_PATH=/tip-qr.png #Optional
-    ```
+3. Build the Docker image:
+   ```bash
+   docker-compose build
+   ```
 
-3. Build and run the Docker container:
+4. Run the Docker container:
+   ```bash
+   docker-compose up
+   ```
 
-    ```bash
-    docker-compose build
-    docker-compose up
-    ```
+### Option 2: Pull from Docker Hub
 
-4. Open your browser and go to `http://localhost:5000`.
+1. Create a `.env` file as described in step 2 of Option 1.
+
+2. Create or modify the `docker-compose.yml` file to use the pre-built image:
+   ```yaml
+   version: '3'
+   services:
+     web:
+       image: jlevangie/lazydj:latest
+       container_name: lazydj
+       ports:
+         - "5000:5000"
+       env_file:
+         - .env
+       environment:
+         - SECRET_KEY=${SECRET_KEY}
+         - SPOTIPY_CLIENT_ID=${SPOTIPY_CLIENT_ID}
+         - SPOTIPY_CLIENT_SECRET=${SPOTIPY_CLIENT_SECRET}
+         - SPOTIPY_REDIRECT_URI=${SPOTIPY_REDIRECT_URI}
+       volumes:
+         - app:/app
+       restart: unless-stopped
+   volumes:
+     app:
+
+   ```
+
+3. Pull and run the Docker container:
+   ```bash
+   docker-compose up
+   ```
+
+### Accessing the Application
+
+After following either option, open your browser and go to `http://localhost:5000` to access LazyDJ.
 
 ## PWA Features
 
