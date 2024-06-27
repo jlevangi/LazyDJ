@@ -71,7 +71,7 @@ Before you begin, ensure you have met the following requirements:
 
 2. Start the Application:
    ```
-   flask run
+   python3 .\app.py
    ```
 
 3. Open a web browser and navigate to `http://localhost:5000`
@@ -87,7 +87,7 @@ Before you begin, ensure you have met the following requirements:
 To run the app in development mode with debug features enabled:
 
 ```
-flask run --debug
+python3 .\app.py --debug
 ```
 
 For testing the QR code feature during development:
