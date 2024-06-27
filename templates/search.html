@@ -104,33 +104,54 @@
             });
         }
 
-        function fetchRecommendations(query) {
-            fetch(`/recommendations?query=${query}`)
-            .then(response => response.json())
-            .then(data => {
-                const resultsContainer = document.querySelector('.results');
-                resultsContainer.innerHTML = '';
-                data.forEach(track => {
-                    const resultItem = document.createElement('div');
-                    resultItem.className = 'result-item';
-                    if (track.album_art) {
-                        const img = document.createElement('img');
-                        img.src = track.album_art;
-                        img.alt = `${track.name} album art`;
-                        img.className = 'album-art';
-                        resultItem.appendChild(img);
-                    }
-                    const trackInfo = document.createElement('p');
-                    trackInfo.innerText = `${track.name} by ${track.artists}`;
-                    resultItem.appendChild(trackInfo);
-                    const button = document.createElement('button');
-                    button.innerText = 'Add to Queue';
-                    button.onclick = () => addTrackToQueue(track.uri);
-                    resultItem.appendChild(button);
-                    resultsContainer.appendChild(resultItem);
-                });
-            });
+        function truncateText(text, maxLength) {
+            if (text.length > maxLength) {
+                return text.substring(0, maxLength - 3) + '...';
+            }
+            return text;
         }
+
+        function fetchRecommendations(query) {
+    fetch(`/recommendations?query=${query}`)
+    .then(response => response.json())
+    .then(data => {
+        const resultsContainer = document.querySelector('.results');
+        resultsContainer.innerHTML = '';
+        data.forEach(track => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            if (track.album_art) {
+                const img = document.createElement('img');
+                img.src = track.album_art;
+                img.alt = `${track.name} album art`;
+                img.className = 'album-art';
+                resultItem.appendChild(img);
+            }
+            const trackInfo = document.createElement('div');
+            trackInfo.className = 'track-info';
+            
+            const trackName = document.createElement('p');
+            trackName.className = 'track-name';
+            trackName.innerText = truncateText(track.name, 40);
+            trackName.title = track.name;
+            
+            const trackArtist = document.createElement('p');
+            trackArtist.className = 'track-artist';
+            trackArtist.innerText = truncateText(track.artists, 40);
+            trackArtist.title = track.artists;
+            
+            trackInfo.appendChild(trackName);
+            trackInfo.appendChild(trackArtist);
+            resultItem.appendChild(trackInfo);
+            
+            const button = document.createElement('button');
+            button.innerText = 'Add to Queue';
+            button.onclick = () => addTrackToQueue(track.uri);
+            resultItem.appendChild(button);
+            resultsContainer.appendChild(resultItem);
+        });
+    });
+}
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchQueue();
@@ -182,33 +203,42 @@
         <h1><a href="/search" class="header-link">The Lazy DJ</a></h1>
         <button class="tip-button" id="tipButton">Accepting Tips!</button>
     </div>
-    <div class="content-container">
-        <div class="main-content">
-            <div class="search-bar-container">
-                <form action="/search" method="get" class="search-bar">
-                    <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="Search for a song to add to the queue">
-                    <button type="submit">Search</button>
-                </form>
-            </div>
-            <div class="results">
-                {% for track in tracks %}
-                <div class="result-item">
-                    {% if track.album_art %}
-                    <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
-                    {% endif %}
-                    <p>{{ track.name }} by {{ track.artists }}</p>
-                    <button onclick="addTrackToQueue('{{ track.uri }}')">Add to Queue</button>
+    <body>
+        <div class="content-container">
+            <div class="main-content">
+                <div class="search-bar-container">
+                    <form action="/search" method="get" class="search-bar">
+                        <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="Search for a song to add to the queue">
+                        <button type="submit">Search</button>
+                    </form>
                 </div>
-                {% endfor %}
+                <div class="results">
+                    {% for track in tracks %}
+                    <div class="result-item">
+                        {% if track.album_art %}
+                        <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
+                        {% endif %}
+                        <div class="track-info">
+                            <p class="track-name" title="{{ track.name }}">
+                                {{ track.name|truncate(40, true, "...") }}
+                            </p>
+                            <p class="track-artist" title="{{ track.artists }}">
+                                {{ track.artists|truncate(40, true, "...") }}
+                            </p>
+                        </div>
+                        <button onclick="addTrackToQueue('{{ track.uri }}')">Add to Queue</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="queue-container">
+                <h2>Now Playing</h2>
+                <div id="queue" class="queue">
+                    <!-- Queue items will be populated here -->
+                </div>
             </div>
         </div>
-        <div class="queue-container">
-            <h2>Now Playing</h2>
-            <div id="queue" class="queue">
-                <!-- Queue items will be populated here -->
-            </div>
-        </div>
-    </div>
+        
     
     <div id="tipModal" class="modal">
         <div class="modal-content">
