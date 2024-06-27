@@ -183,5 +183,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgements
 
+- [Greybeard](https://github.com/strickdd) for the inspiration and support!
 - [Spotipy](https://spotipy.readthedocs.io/) for Spotify API integration
 - [Flask](https://flask.palletsprojects.com/) for the web framework
