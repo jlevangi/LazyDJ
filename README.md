@@ -1,5 +1,9 @@
-# The Lazy DJ
+<div align="center">
+  <img src="https://github.com/JPLeVangie/LazyDJ/assets/47614776/83303e31-c8dc-45a6-a18f-64635953e535" height="200"/>
+</div>
+<h1 align="center" style="margin-top: -10px"> The Lazy DJ! </h1>
 
+## What is The Lazy DJ
 Lazy DJ is a web application that allows users to search for and queue songs on Spotify, creating a collaborative playlist experience. It's perfect for parties, gatherings, or any situation where you want to give others control over the music without handing over your device.
 The app is built with Flask and can be run as a Progressive Web App (PWA).
 
