@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/JPLeVangie/LazyDJ/assets/47614776/97bc8f4e-a74d-4738-8de2-2b18ca785af9" height="200"/>
+  <img src="./docs/images/Logo.png" height="200"/>  
 </div>
 <h1 align="center" style="margin-top: -10px"> The Lazy DJ! </h1>
 
