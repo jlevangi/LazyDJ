@@ -15,7 +15,8 @@ The app is built with Flask and can be run as a Progressive Web App (PWA).
 - Add songs to the current Spotify queue
 - View the current playing track and upcoming queue
 - Prevent duplicate song additions within a time frame
-- Responsive design and PWA capabilities for a native app-like experience.
+- 'Search' for the Admin Keyword to add a song no matter the time frame
+- Responsive design and PWA capabilities for a native app-like experience
 
 ## Requirements
 
@@ -68,7 +69,9 @@ Before you begin, ensure you have met the following requirements:
     SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
     SPOTIPY_REDIRECT_URI=your_redirect_uri
     SECRET_KEY=your_flask_secret_key
+    ADMIN_KEYWORD=admin # Optional
     TIP_QR_CODE_PATH=/tip-qr.png #Optional
+
     ```
 
 ### Usage
@@ -116,6 +119,7 @@ For testing the QR code feature during development:
    SPOTIPY_CLIENT_ID=your_spotify_client_id
    SPOTIPY_CLIENT_SECRET=your_spotify_client_secret
    SPOTIPY_REDIRECT_URI=your_spotify_redirect_uri
+   ADMIN_KEYWORD=admin # Optional
    TIP_QR_CODE_PATH=/tip-qr.png #Optional
    ```
 
