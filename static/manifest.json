@@ -16,6 +16,16 @@
             "src": "/static/icons/lazydjicon-512x512.png",
             "type": "image/png",
             "sizes": "512x512"
+        },
+        {
+            "src": "/static/icons/apple-touch-icon-120x120.png",
+            "type": "image/png",
+            "sizes": "120x120"
+        },
+        {
+            "src": "/static/icons/apple-touch-icon-180x180.png",
+            "type": "image/png",
+            "sizes": "180x180"
         }
     ]
 }
