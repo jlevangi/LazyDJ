@@ -11,7 +11,7 @@ body {
 
 h1 {
     margin: 0;
-    padding: 10px;
+    padding: 0px;
     color: #1DB954;
     font-weight: bold;
 }
@@ -37,10 +37,53 @@ a:hover, button:hover {
 
 .login-container {
     display: flex;
-    justify-content: center; /* Center horizontally */
-    align-items: flex-start; /* Align items at the start */
-    height: 100vh; /* Take full viewport height */
-    padding-top: 25vh; /* Add padding to push the content 1/4 from the top */
+    justify-content: center;
+    align-items: flex-start;
+    height: 100vh;
+    padding-top: 25vh;
+}
+
+.icon-container {
+    width: 65px;
+    height: 65px;
+    position: absolute;
+    left: 4px;
+    top: 3px;
+}
+
+.icon-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.header-container {
+    background-color: #1DB954;
+    color: white;
+    padding: 4px;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-container.admin-mode {
+    background-color: #282828; /* Darker background for admin mode */
+}
+
+.header-container.admin-mode h1 a {
+    color: red; /* Red text for admin mode */
+}
+
+h1 {
+    margin: 0;
+    padding: 10px;
+    color: #FFFFFF;
+    font-weight: bold;
+    flex-grow: 1;
+    text-align: center;
 }
 
 .header-link {
@@ -51,23 +94,12 @@ a:hover, button:hover {
     border-radius: 25px;
     font-size: 30px;
     font-weight: bold;
-    padding: 15px 30px;
+    padding: 10px 30px;
     border: none;
 }
 
 .header-link:hover {
     background-color: #1ED760;
-}
-
-.header-container {
-    background-color: #1DB954;
-    color: white;
-    padding: 10px;
-    text-align: center;
-    width: 100%;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
 }
 
 .tip-button {
@@ -80,7 +112,6 @@ a:hover, button:hover {
     font-size: 18px;
     padding: 10px 20px;
     position: absolute;
-    top: 20px;
     right: 30px;
 }
 
@@ -100,16 +131,14 @@ a:hover, button:hover {
 .main-content {
     flex: 1;
     display: flex;
-    flex-direction: column; /* Column layout */
-    margin-right: 0; /* Remove right margin */
+    flex-direction: column;
     padding-right: 20px;
 }
 
 .search-bar-container {
     width: 100%;
-    margin-bottom: 20px; /* Add margin below the search bar */
-    margin-top: 20px; /* Add margin above the queue container */
-
+    margin-bottom: 20px;
+    margin-top: 20px;
 }
 
 .search-bar {
@@ -119,15 +148,15 @@ a:hover, button:hover {
 
 .search-bar input[type="text"] {
     flex-grow: 1;
-    padding: 15px; /* Increase padding for thicker input */
-    font-size: 20px; /* Increase font size */
+    padding: 15px;
+    font-size: 20px;
     border-radius: 5px 0 0 5px;
     border: none;
 }
 
 .search-bar button[type="submit"] {
-    padding: 15px 25px; /* Increase padding for thicker button */
-    font-size: 20px; 
+    padding: 15px 25px;
+    font-size: 20px;
     border-radius: 0 5px 5px 0;
     border: none;
     background-color: #1DB954;
@@ -136,11 +165,11 @@ a:hover, button:hover {
 }
 
 .results {
-    width: 100%; /* Ensure the results take the full width */
+    width: 100%;
     display: flex;
-    flex-direction: column; /* Align results in a column */
-    margin-bottom: 20px; /* Add margin below the results */
-    padding-top: 20px; /* Add padding to separate from search bar */
+    flex-direction: column;
+    margin-bottom: 20px;
+    padding-top: 20px;
 }
 
 .result-item {
@@ -150,6 +179,21 @@ a:hover, button:hover {
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 5px;
+}
+.track-info {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+.track-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #FFFFFF;
+    margin: 0;
+}
+.track-artist {
+    font-size: 14px;
+    color: #B3B3B3;
+    margin: 0;
 }
 
 .album-art {
@@ -245,13 +289,13 @@ a:hover, button:hover {
 .close {
     color: #aaa;
     float: right;
-    font-size: 36px; /* Increased from 28px */
+    font-size: 36px;
     font-weight: bold;
     cursor: pointer;
     position: absolute;
-    top: 5px; /* Slightly adjusted to account for larger size */
+    top: 5px;
     right: 15px;
-    line-height: 1; /* Added to improve vertical alignment */
+    line-height: 1;
 }
 
 .close:hover,
@@ -277,11 +321,11 @@ a:hover, button:hover {
 }
 
 .tip-qr-code {
-    max-width: 300px; /* Increased from 200px to accommodate the larger image */
+    max-width: 300px;
     width: 100%;
     height: auto;
     margin-bottom: 10px;
-    border-radius: 10px; /* Optional: adds rounded corners to match the image */
+    border-radius: 10px;
 }
 
 .qr-code-container p {
@@ -297,6 +341,7 @@ a:hover, button:hover {
 .qr-code-container a:hover {
     text-decoration: underline;
 }
+
 @media (max-width: 768px) {
     .content-container {
         flex-direction: column;

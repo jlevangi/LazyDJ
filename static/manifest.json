@@ -5,15 +5,15 @@
     "display": "standalone",
     "background_color": "#121212",
     "theme_color": "#1DB954",
-    "description": "A Partty Queue system for Spotify.",
+    "description": "A Party Queue system for Spotify.",
     "icons": [
         {
-            "src": "/static/icons/icon-192x192.png",
+            "src": "/static/icons/lazydjicon-192x192.png",
             "type": "image/png",
             "sizes": "192x192"
         },
         {
-            "src": "/static/icons/icon-512x512.png",
+            "src": "/static/icons/lazydjicon-512x512.png",
             "type": "image/png",
             "sizes": "512x512"
         }

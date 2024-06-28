@@ -2,5 +2,6 @@
 /flask_session
 /cache
 *.cache
+/__pycache__
 /venv
-*venmo*
+/static/tip-qr.png

@@ -4,182 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search</title>
+    <link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="manifest" href="/static/manifest.json">
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/service-worker.js')
-                .then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                })
-                .catch(error => {
-                    console.log('ServiceWorker registration failed: ', error);
-                });
-        }
-
-        function addTrackToQueue(track_uri) {
-            fetch('/queue', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    'track_uri': track_uri,
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                showNotification(data.message, data.status);
-                if (data.status === 'success') {
-                    fetchQueue();
-                    setTimeout(() => {
-                        window.location.href = "https://lazydj.levangie.org/search";
-                    }, 2000); // Adjust the delay as needed
-                }
-            });
-        }
-
-        function showNotification(message, status) {
-            const notification = document.getElementById('notification');
-            notification.innerText = message;
-            notification.style.backgroundColor = status === 'success' ? '#1DB954' : '#E74C3C';
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 2000);
-        }
-
-        function fetchQueue() {
-            fetch('/current_queue')
-            .then(response => response.json())
-            .then(data => {
-                const queueContainer = document.getElementById('queue');
-                queueContainer.innerHTML = '';
-
-                if (data.current_track) {
-                    const currentTrackElement = document.createElement('div');
-                    currentTrackElement.className = 'queue-item current-track';
-                    currentTrackElement.innerText = `${data.current_track.name} by ${data.current_track.artists}`;
-                    queueContainer.appendChild(currentTrackElement);
-                }
-
-                if (data.user_queue.length > 0) {
-                    const userQueueLabel = document.createElement('h3');
-                    userQueueLabel.innerText = 'In Queue';
-                    queueContainer.appendChild(userQueueLabel);
-
-                    data.user_queue.forEach(track => {
-                        const trackElement = document.createElement('div');
-                        trackElement.className = 'queue-item';
-                        trackElement.innerText = `${track.name} by ${track.artists}`;
-                        queueContainer.appendChild(trackElement);
-                    });
-                }
-
-                if (data.radio_queue.length > 0) {
-                    const separator = document.createElement('hr');
-                    separator.className = 'separator';
-                    queueContainer.appendChild(separator);
-
-                    const nowPlayingLabel = document.createElement('h3');
-                    nowPlayingLabel.innerText = 'Up Next';
-                    queueContainer.appendChild(nowPlayingLabel);
-
-                    // Limit to 6 tracks
-                    data.radio_queue.slice(0, 6).forEach(track => {
-                        const trackElement = document.createElement('div');
-                        trackElement.className = 'queue-item';
-                        trackElement.innerText = `${track.name} by ${track.artists}`;
-                        queueContainer.appendChild(trackElement);
-                    });
-
-                    // If there are more than 6 tracks, add an indicator
-                    if (data.radio_queue.length > 6) {
-                        const moreTracksElement = document.createElement('div');
-                        moreTracksElement.className = 'queue-item more-tracks';
-                        moreTracksElement.innerText = `+ ${data.radio_queue.length - 6} more tracks`;
-                        queueContainer.appendChild(moreTracksElement);
-                    }
-                }
-            });
-        }
-
-        function fetchRecommendations(query) {
-            fetch(`/recommendations?query=${query}`)
-            .then(response => response.json())
-            .then(data => {
-                const resultsContainer = document.querySelector('.results');
-                resultsContainer.innerHTML = '';
-                data.forEach(track => {
-                    const resultItem = document.createElement('div');
-                    resultItem.className = 'result-item';
-                    if (track.album_art) {
-                        const img = document.createElement('img');
-                        img.src = track.album_art;
-                        img.alt = `${track.name} album art`;
-                        img.className = 'album-art';
-                        resultItem.appendChild(img);
-                    }
-                    const trackInfo = document.createElement('p');
-                    trackInfo.innerText = `${track.name} by ${track.artists}`;
-                    resultItem.appendChild(trackInfo);
-                    const button = document.createElement('button');
-                    button.innerText = 'Add to Queue';
-                    button.onclick = () => addTrackToQueue(track.uri);
-                    resultItem.appendChild(button);
-                    resultsContainer.appendChild(resultItem);
-                });
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchQueue();
-            setInterval(fetchQueue, 5000); // Refresh queue every 5 seconds
-
-            const searchInput = document.querySelector('input[name="query"]');
-            searchInput.addEventListener('input', (e) => {
-                const query = e.target.value;
-                if (query.length > 2) {
-                    fetchRecommendations(query);
-                }
-            });
-
-            // New code for the modal
-            const modal = document.getElementById('tipModal');
-            const btn = document.getElementById('tipButton');
-            const span = document.getElementsByClassName('close')[0];
-
-            btn.onclick = function() {
-                modal.style.display = 'block';
-                setTimeout(() => {
-                    modal.classList.add('show');
-                }, 10);
-            }
-
-            span.onclick = function() {
-                modal.classList.remove('show');
-                setTimeout(() => {
-                    modal.style.display = 'none';
-                }, 300);
-            }
-
-            window.onclick = function(event) {
-                if (event.target == modal) {
-                    modal.classList.remove('show');
-                    setTimeout(() => {
-                        modal.style.display = 'none';
-                    }, 300);
-                }
-            }
-        });
+        var ADMIN_KEYWORD = "{{ admin_keyword }}";
+        var qrCodeAvailable = JSON.parse('{{ qr_code_available|tojson }}');
     </script>
+    <script src="/static/js/app.js" defer></script>
 </head>
 <body>
-    <div class="header-container">
-        <div class="header">
-            <h1><a href="/search" class="header-link">The Lazy DJ</a></h1>
-            <button class="tip-button" id="tipButton">Accepting Tips!</button>
+    <div class="header-container {% if admin_mode %}admin-mode{% endif %}">
+        <div class="icon-container">
+            <img src="/static/icons/lazydjicon-512x512.png" alt="Lazy DJ Icon">
         </div>
+        <h1><a href="/search" class="header-link">The Lazy DJ</a></h1>
+        <button class="tip-button" id="tipButton">Accepting Tips!</button>
     </div>
     <div class="content-container">
         <div class="main-content">
@@ -195,7 +35,14 @@
                     {% if track.album_art %}
                     <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
                     {% endif %}
-                    <p>{{ track.name }} by {{ track.artists }}</p>
+                    <div class="track-info">
+                        <p class="track-name" title="{{ track.name }}">
+                            {{ track.name|truncate(40, true, "...") }}
+                        </p>
+                        <p class="track-artist" title="{{ track.artists }}">
+                            {{ track.artists|truncate(40, true, "...") }}
+                        </p>
+                    </div>
                     <button onclick="addTrackToQueue('{{ track.uri }}')">Add to Queue</button>
                 </div>
                 {% endfor %}
@@ -208,15 +55,14 @@
             </div>
         </div>
     </div>
-    
     <div id="tipModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Support The Lazy DJ</h2>
             <p>Your song just may get bumped to the top 😉</p>
             <div class="qr-code-container">
-                {% if tip_qr_code_path %}
-                    <img src="{{ tip_qr_code_path }}" alt="Tip QR Code Placeholder" class="tip-qr-code">
+                {% if qr_code_available %}
+                    <img src="{{ tip_qr_code_path }}" alt="Tip QR Code" class="tip-qr-code">
                     <p>Scan this QR code to tip!</p>
                 {% else %}
                     <p>Tip QR code not available.</p>
