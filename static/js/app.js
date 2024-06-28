@@ -28,7 +28,7 @@ function addTrackToQueue(track_uri) {
         if (data.status === 'success') {
             fetchQueue();
             setTimeout(() => {
-                window.location.href = "https://lazydj.levangie.org/search";
+                window.location.href = "/search";
             }, 2000);
         }
     })
