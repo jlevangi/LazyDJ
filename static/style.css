@@ -69,6 +69,14 @@ a:hover, button:hover {
     align-items: center;
 }
 
+.header-container.admin-mode {
+    background-color: #282828; /* Darker background for admin mode */
+}
+
+.header-container.admin-mode h1 a {
+    color: red; /* Red text for admin mode */
+}
+
 h1 {
     margin: 0;
     padding: 10px;

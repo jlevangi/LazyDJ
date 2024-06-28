@@ -7,10 +7,14 @@
     <link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="manifest" href="/static/manifest.json">
+    <script>
+        var ADMIN_KEYWORD = "{{ admin_keyword }}";
+        var qrCodeAvailable = JSON.parse('{{ qr_code_available|tojson }}');
+    </script>
     <script src="/static/js/app.js" defer></script>
 </head>
 <body>
-    <div class="header-container">
+    <div class="header-container {% if admin_mode %}admin-mode{% endif %}">
         <div class="icon-container">
             <img src="/static/icons/lazydjicon-512x512.png" alt="Lazy DJ Icon">
         </div>
@@ -67,8 +71,5 @@
         </div>
     </div>
     <div id="notification"></div>
-    <script>
-        var qrCodeAvailable = JSON.parse('{{ qr_code_available|tojson }}');
-    </script>
 </body>
 </html>

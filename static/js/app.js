@@ -8,7 +8,10 @@ if ('serviceWorker' in navigator) {
         });
 }
 
+let isAdmin = false;
+
 function addTrackToQueue(track_uri) {
+    console.log('Adding track to queue. Admin mode:', isAdmin);  // Debug log
     fetch('/queue', {
         method: 'POST',
         headers: {
@@ -16,6 +19,7 @@ function addTrackToQueue(track_uri) {
         },
         body: new URLSearchParams({
             'track_uri': track_uri,
+            'is_admin': isAdmin
         })
     })
     .then(response => response.json())
@@ -27,13 +31,17 @@ function addTrackToQueue(track_uri) {
                 window.location.href = "https://lazydj.levangie.org/search";
             }, 2000);
         }
+    })
+    .catch(error => {
+        console.error('Error adding track to queue:', error);
+        showNotification('Error adding track to queue', 'error');
     });
 }
 
 function showNotification(message, status) {
     const notification = document.getElementById('notification');
     notification.innerText = message;
-    notification.style.backgroundColor = status === 'success' ? '#1DB954' : '#E74C3C';
+    notification.style.backgroundColor = status === 'success' ? '#1DB954' : (status === 'error' ? '#E74C3C' : '#3498DB'); // Adding a default color for 'info' status
     notification.classList.add('show');
     setTimeout(() => {
         notification.classList.remove('show');
@@ -147,8 +155,34 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(fetchQueue, 5000);
 
     const searchInput = document.querySelector('input[name="query"]');
+    const searchButton = document.querySelector('button[type="submit"]'); // Updated selector to match your form
+    const header = document.querySelector('.header-container'); // For changing header color
+
+    // Event listener for typing in the search input
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
+        if (query.length > 2) {
+            fetchRecommendations(query);
+        }
+    });
+
+    // Event listener for the search button click
+    searchButton.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent form submission
+        const query = searchInput.value;
+        if (query === ADMIN_KEYWORD) {
+            isAdmin = true;
+            showNotification('Admin mode activated', 'success');
+            console.log('Admin mode activated');  // Debug log
+            header.classList.add('admin-mode'); // Change header color for admin mode
+        } else {
+            if (isAdmin) {
+                // console.log('Admin mode deactivated');  // Debug log
+            }
+            isAdmin = false;
+            //showNotification('Admin mode deactivated', 'info');
+            header.classList.remove('admin-mode'); // Reset header color
+        }
         if (query.length > 2) {
             fetchRecommendations(query);
         }

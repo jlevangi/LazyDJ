@@ -12,6 +12,9 @@ app = Flask(__name__)
 
 app.secret_key = os.getenv('SECRET_KEY')
 
+# Admin keyword
+ADMIN_KEYWORD = os.getenv('ADMIN_KEYWORD')
+
 TIP_QR_CODE_PATH = '/static/tip-qr.png'
 
 def qr_code_exists():
@@ -19,6 +22,10 @@ def qr_code_exists():
     static_folder = os.path.join(app.root_path, 'static')
     qr_code_file = os.path.join(static_folder, 'tip-qr.png')
     return os.path.exists(qr_code_file)
+
+def check_if_admin():
+    query = request.args.get('query', '').lower()
+    return query == ADMIN_KEYWORD
 
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -76,11 +83,16 @@ def search():
         return redirect(url_for('index'))
 
     query = request.args.get('query')
+    admin_mode = check_if_admin()
 
     tracks = []
     if query:
         sp = spotipy.Spotify(auth=token_info['access_token'])
-        results = sp.search(q=query, type='track', limit=10)
+        if admin_mode:
+            # If admin keyword is entered, search for a default query
+            results = sp.search(q='a', type='track', limit=10)
+        else:
+            results = sp.search(q=query, type='track', limit=10)
         tracks = results['tracks']['items']
 
     track_info = []
@@ -99,10 +111,11 @@ def search():
                            token=token_info['access_token'], 
                            tracks=track_info, 
                            tip_qr_code_path=TIP_QR_CODE_PATH,
-                           qr_code_available=qr_code_available)
+                           qr_code_available=qr_code_available,
+                           admin_mode=admin_mode,
+                           admin_keyword=ADMIN_KEYWORD)  # Pass the admin keyword
 
 
-# Update the queue function to set a flag
 @app.route('/queue', methods=['POST'])
 def queue():
     token_info = get_token()
@@ -110,24 +123,30 @@ def queue():
         return redirect(url_for('index'))
 
     track_uri = request.form['track_uri']
+    admin_mode = request.form.get('is_admin', 'false').lower() == 'true'
     current_time = time.time()
-    
-    # Check if track has been added within the last 20 minutes
-    if track_uri in recent_tracks and current_time - recent_tracks[track_uri] < 1200:
+
+    app.logger.info(f"Queueing track: {track_uri}, Admin mode: {admin_mode}")  # Debug log
+
+    # Check if admin mode is active or if track hasn't been added recently
+    if admin_mode or track_uri not in recent_tracks or current_time - recent_tracks[track_uri] >= 1200:
+        recent_tracks[track_uri] = current_time
+        sp = spotipy.Spotify(auth=token_info['access_token'])
+        
+        try:
+            sp.add_to_queue(track_uri)
+            return jsonify({"status": "success", "message": "Track added to queue!"})
+        except spotipy.exceptions.SpotifyException as e:
+            app.logger.error(f"Spotify API error: {str(e)}")  # Debug log
+            if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
+                return jsonify({"status": "error", "message": "No active device found. Please play a song on Spotify and try again."})
+            else:
+                return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"})
+    else:
         return jsonify({"status": "error", "message": "This track has already been added recently."})
 
-    recent_tracks[track_uri] = current_time
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    
-    try:
-        sp.add_to_queue(track_uri)
-        return jsonify({"status": "success", "message": "Track added to queue!"})
-    except spotipy.exceptions.SpotifyException as e:
-        if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in e.reason:
-            return jsonify({"status": "error", "message": "No active device found. Please play a song on Spotify and try again."})
-        else:
-            return jsonify({"status": "error", "message": "An error occurred. Please try again."})
-        
+
+
 @app.route('/current_queue', methods=['GET'])
 def current_queue():
     token_info = get_token()
@@ -169,7 +188,6 @@ def current_queue():
             return redirect(url_for('current_queue'))
         else:
             return jsonify({"status": "error", "message": "An error occurred. Please try again."})
-
 
 @app.route('/recommendations', methods=['GET'])
 def recommendations():
