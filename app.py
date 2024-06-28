@@ -12,16 +12,13 @@ app = Flask(__name__)
 
 app.secret_key = os.getenv('SECRET_KEY')
 
-if app.debug:
-    TIP_QR_CODE_PATH = '/static/tip-qr.png'
-else:
-    TIP_QR_CODE_PATH = os.environ.get('TIP_QR_CODE_PATH', '/qr/tip-qr.png')
+TIP_QR_CODE_PATH = '/static/tip-qr.png'
 
 def qr_code_exists():
-    """Check if the QR code file exists."""
-    if TIP_QR_CODE_PATH.startswith('/static/'):
-        return os.path.exists(os.path.join(app.root_path, TIP_QR_CODE_PATH[1:]))
-    return os.path.exists(TIP_QR_CODE_PATH)
+    """Check if the QR code file exists in the static folder."""
+    static_folder = os.path.join(app.root_path, 'static')
+    qr_code_file = os.path.join(static_folder, 'tip-qr.png')
+    return os.path.exists(qr_code_file)
 
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -101,7 +98,8 @@ def search():
     return render_template('search.html', 
                            token=token_info['access_token'], 
                            tracks=track_info, 
-                           tip_qr_code_path=TIP_QR_CODE_PATH if qr_code_available else None)
+                           tip_qr_code_path=TIP_QR_CODE_PATH,
+                           qr_code_available=qr_code_available)
 
 
 # Update the queue function to set a flag
