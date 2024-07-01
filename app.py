@@ -1,3 +1,4 @@
+import logging
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, send_from_directory
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -5,10 +6,15 @@ import time
 from flask_session import Session
 import os
 from dotenv import load_dotenv
+import argparse
 
 load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app.secret_key = os.getenv('SECRET_KEY')
 
@@ -43,6 +49,27 @@ sp_oauth = SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redire
 
 # Store recently added tracks
 recent_tracks = {}
+
+# Added for logging
+
+@app.before_request
+def log_request_info():
+    if app.debug:
+        logger.debug('Headers: %s', request.headers)
+        logger.debug('Body: %s', request.get_data())
+
+@app.after_request
+def log_response_info(response):
+    if app.debug:
+        logger.debug('Response Status: %s', response.status)
+        logger.debug('Response Headers: %s', response.headers)
+    return response
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    logger.error('Method Not Allowed: %s', request.url)
+    logger.error('Request Method: %s', request.method)
+    return jsonify(error="Method Not Allowed"), 405
 
 @app.route('/')
 def index():
@@ -120,13 +147,18 @@ def search():
 def queue():
     token_info = get_token()
     if not token_info:
+        logger.warning('No token info available')
         return redirect(url_for('index'))
 
-    track_uri = request.form['track_uri']
+    track_uri = request.form.get('track_uri')
     admin_mode = request.form.get('is_admin', 'false').lower() == 'true'
     current_time = time.time()
 
-    app.logger.info(f"Queueing track: {track_uri}, Admin mode: {admin_mode}")  # Debug log
+    logger.info(f"Queueing track: {track_uri}, Admin mode: {admin_mode}")
+
+    if not track_uri:
+        logger.error("No track_uri provided in request")
+        return jsonify({"status": "error", "message": "No track URI provided"}), 400
 
     # Check if admin mode is active or if track hasn't been added recently
     if admin_mode or track_uri not in recent_tracks or current_time - recent_tracks[track_uri] >= 1200:
@@ -230,4 +262,26 @@ def send_static(path):
     return send_from_directory('static', path)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    parser = argparse.ArgumentParser(description='Run the Flask app with optional debug mode.')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    args = parser.parse_args()
+
+    if args.debug:
+        # Set logging level for our app logger
+        logger.setLevel(logging.DEBUG)
+        # Set Flask app to debug mode
+        app.debug = True
+        logger.debug("Debug mode is enabled")
+    else:
+        # Set logging level for our app logger
+        logger.setLevel(logging.INFO)
+        # Ensure Flask app is not in debug mode
+        app.debug = False
+        logger.info("Running in production mode")
+
+    # Silence other loggers
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    logging.getLogger('spotipy').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+    app.run(host='0.0.0.0', port=5000)
