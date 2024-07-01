@@ -81,11 +81,7 @@ function addTrackToQueue(track_uri, trackName, artistName) {
     debugLog(`Attempting to add track to queue: ${trackName} by ${artistName}`);
 
     // First, check admin status
-    fetch('/check_admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ 'query': document.querySelector('input[name="query"]').value })
-    })
+    fetch('/check_admin_status')
     .then(response => response.json())
     .then(data => {
         debugLog('Admin check response:', data);
@@ -95,7 +91,12 @@ function addTrackToQueue(track_uri, trackName, artistName) {
         return fetch('/queue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ 'track_uri': track_uri, 'track_name': trackName, 'artist_name': artistName })
+            body: new URLSearchParams({ 
+                'track_uri': track_uri, 
+                'track_name': trackName, 
+                'artist_name': artistName,
+                'is_admin': data.is_admin
+            })
         });
     })
     .then(response => response.json())
@@ -104,7 +105,7 @@ function addTrackToQueue(track_uri, trackName, artistName) {
         if (data.status === 'success') {
             showNotification(data.message, 'success');
             fetchQueue();
-        } else if (data.status === 'cooldown' || data.status === 'duplicate') {
+        } else if (data.status === 'cooldown') {
             showNotification(data.message, 'info');
         } else {
             showNotification(data.message, 'error');
@@ -161,7 +162,7 @@ function updateQueueDisplay(currentTrack) {
     if (currentTrack) {
         queueContainer.innerHTML += `
             <div class="queue-item current-track">
-                <strong>Now Playing:</strong> ${currentTrack.name} by ${currentTrack.artists}
+                ${currentTrack.name} by ${currentTrack.artists}
             </div>`;
     }
 

@@ -27,15 +27,6 @@ PORT = int(os.getenv('PORT', 5000))  # Default to 5000 if not set
 
 TIP_QR_CODE_PATH = '/static/tip-qr.png'
 
-def qr_code_exists():
-    """Check if the QR code file exists in the static folder."""
-    static_folder = os.path.join(app.root_path, 'static')
-    qr_code_file = os.path.join(static_folder, 'tip-qr.png')
-    return os.path.exists(qr_code_file)
-
-def check_if_admin():
-    return session.get('admin', False)
-
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
@@ -53,27 +44,34 @@ sp_oauth = SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redire
 # Store recently added tracks
 recent_tracks = {}
 
+def qr_code_exists():
+    """Check if the QR code file exists in the static folder."""
+    static_folder = os.path.join(app.root_path, 'static')
+    qr_code_file = os.path.join(static_folder, 'tip-qr.png')
+    return os.path.exists(qr_code_file)
+
 def format_track_info(track):
     return f"{track['name']} by {', '.join([artist['name'] for artist in track['artists']])}"
 
-@app.before_request
-def log_request_info():
-    if app.debug:
-        logger.debug('Headers: %s', request.headers)
-        logger.debug('Body: %s', request.get_data())
+def get_token():
+    token_info = session.get('token_info', None)
+    if not token_info:
+        return None
 
-@app.after_request
-def log_response_info(response):
-    if app.debug:
-        logger.debug('Response Status: %s', response.status)
-        logger.debug('Response Headers: %s', response.headers)
-    return response
+    now = int(time.time())
+    is_token_expired = token_info['expires_at'] - now < 60
 
-@app.errorhandler(405)
-def method_not_allowed(error):
-    logger.error('Method Not Allowed: %s', request.url)
-    logger.error('Request Method: %s', request.method)
-    return jsonify(error="Method Not Allowed"), 405
+    if is_token_expired:
+        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+        session['token_info'] = token_info
+        session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
+
+    return token_info
+
+def check_if_admin(query=None):
+    if query:
+        return query.lower() == ADMIN_KEYWORD
+    return session.get('admin', False)
 
 @app.route('/debug_status')
 def debug_status():
@@ -95,26 +93,6 @@ def callback():
     session['token_info'] = token_info
     session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
     return redirect(url_for('search'))
-
-def get_token():
-    token_info = session.get('token_info', None)
-    if not token_info:
-        return None
-
-    now = int(time.time())
-    is_token_expired = token_info['expires_at'] - now < 60
-
-    if is_token_expired:
-        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
-        session['token_info'] = token_info
-        session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
-
-    return token_info
-
-def check_if_admin(query=None):
-    if query:
-        return query.lower() == ADMIN_KEYWORD
-    return session.get('admin', False)
 
 @app.route('/check_admin', methods=['POST'])
 def check_admin():
@@ -182,6 +160,48 @@ def search():
                            qr_code_available=qr_code_available,
                            admin_mode=admin_mode)
 
+@app.route('/queue', methods=['POST'])
+def queue():
+    token_info = get_token()
+    if not token_info:
+        logger.warning('No token info available')
+        return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
+
+    track_uri = request.form.get('track_uri')
+    track_name = request.form.get('track_name')
+    artist_name = request.form.get('artist_name')
+    is_admin = request.form.get('is_admin') == 'true'
+    current_time = time.time()
+
+    if app.debug:
+        logger.debug(f"Attempting to queue: {track_name} by {artist_name}")
+
+    if not track_uri:
+        logger.error("No track_uri provided in request")
+        return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
+
+    cooldown_period = 1200  # 20 minutes in seconds
+
+    if not is_admin and track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
+        if app.debug:
+            logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
+        return jsonify({"status": "error", "message": "This track was recently played. Please try again later."}), 200
+
+    recent_tracks[track_uri] = current_time
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    
+    try:
+        sp.add_to_queue(track_uri)
+        if app.debug:
+            logger.debug(f"Successfully added to queue: {track_name} by {artist_name}")
+        return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
+    except SpotifyException as e:
+        logger.error(f"Spotify API error: {str(e)}")
+        if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
+            return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
+        else:
+            return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
+
 @app.route('/play_next', methods=['POST'])
 def play_next():
     token_info = get_token()
@@ -189,8 +209,20 @@ def play_next():
         return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
 
     track_uri = request.form.get('track_uri')
+    track_name = request.form.get('track_name')
+    artist_name = request.form.get('artist_name')
+    is_admin = request.form.get('is_admin') == 'true'
+    current_time = time.time()
+
     if not track_uri:
         return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
+
+    cooldown_period = 1200  # 20 minutes in seconds
+
+    if not is_admin and track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
+        if app.debug:
+            logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
+        return jsonify({"status": "cooldown", "message": "This track was recently played. Please try again later."}), 200
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
     
@@ -206,48 +238,8 @@ def play_next():
         # Skip to the next track (which will be the one we just added)
         sp.next_track(device_id=current_playback['device']['id'])
         
+        recent_tracks[track_uri] = current_time
         return jsonify({"status": "success", "type": "success", "message": "Track set to play next"})
-    except SpotifyException as e:
-        logger.error(f"Spotify API error: {str(e)}")
-        if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
-            return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
-        else:
-            return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
-
-@app.route('/queue', methods=['POST'])
-def queue():
-    token_info = get_token()
-    if not token_info:
-        logger.warning('No token info available')
-        return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
-
-    track_uri = request.form.get('track_uri')
-    track_name = request.form.get('track_name')
-    artist_name = request.form.get('artist_name')
-    current_time = time.time()
-
-    if app.debug:
-        logger.debug(f"Attempting to queue: {track_name} by {artist_name}")
-
-    if not track_uri:
-        logger.error("No track_uri provided in request")
-        return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
-
-    cooldown_period = 3  # 3 seconds cooldown
-
-    if track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
-        if app.debug:
-            logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
-        return jsonify({"status": "cooldown", "message": "Track recently added"}), 200
-
-    recent_tracks[track_uri] = current_time
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    
-    try:
-        sp.add_to_queue(track_uri)
-        if app.debug:
-            logger.debug(f"Successfully added to queue: {track_name} by {artist_name}")
-        return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
     except SpotifyException as e:
         logger.error(f"Spotify API error: {str(e)}")
         if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
