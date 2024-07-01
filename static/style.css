@@ -247,6 +247,11 @@ h1 {
     max-width: 80%;
 }
 
+#notification.error {
+    background-color: #ff2727; /* Red background for errors */
+    color: white;
+}
+
 #notification.show {
     opacity: 1;
 }

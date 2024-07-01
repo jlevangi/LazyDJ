@@ -1,35 +1,75 @@
+// Service Worker Registration
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/static/service-worker.js')
-        .then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        })
-        .catch(error => {
-            console.log('ServiceWorker registration failed: ', error);
-        });
+        .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
+        .catch(error => console.error('ServiceWorker registration failed: ', error));
 }
 
-let isAdmin = false;
+function showNotification(message, type) {
+    console.log('showNotification called with message:', message, 'and type:', type);
+    const notification = document.getElementById('notification');
+    if (!notification) {
+        console.error('Notification element not found in the DOM');
+        return;
+    }
+    notification.textContent = message;
+    notification.className = type === 'error' ? 'error' : '';
+    notification.style.display = 'block';
+    
+    // Force a reflow before adding the 'show' class
+    notification.offsetHeight;
+    
+    notification.classList.add('show');
+    console.log('Notification displayed:', message);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        console.log('Notification hidden after timeout');
+        
+        // Hide the notification after the fade-out transition
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 500); // Match this to your CSS transition time
+    }, 3000);
+}
 
+function truncateText(text, maxLength) {
+    return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
+}
+
+// UI Update Functions
+function updateUIForAdminStatus(isAdmin) {
+    const header = document.querySelector('.header-container');
+    if (isAdmin) {
+        header.classList.add('admin-mode');
+        console.log('Admin mode UI activated');
+        showNotification('Admin mode activated', 'success');
+    } else {
+        header.classList.remove('admin-mode');
+        console.log('Admin mode UI deactivated');
+        // Removed notification for admin mode deactivation
+    }
+}
+
+// API Interaction Functions
 function addTrackToQueue(track_uri) {
-    console.log('Adding track to queue. Admin mode:', isAdmin);  // Debug log
+    console.log('Attempting to add track to queue:', track_uri);
     fetch('/queue', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            'track_uri': track_uri,
-            'is_admin': isAdmin
-        })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ 'track_uri': track_uri })
     })
     .then(response => response.json())
     .then(data => {
-        showNotification(data.message, data.status);
+        console.log('Server response:', data);
         if (data.status === 'success') {
+            showNotification(data.message || 'Track added to queue', 'success');
             fetchQueue();
-            setTimeout(() => {
-                window.location.href = "/search";
-            }, 2000);
+            if (data.admin_deactivated) {
+                updateUIForAdminStatus(false);
+            }
+        } else {
+            showNotification(data.message || 'Failed to add track to queue', 'error');
         }
     })
     .catch(error => {
@@ -38,186 +78,185 @@ function addTrackToQueue(track_uri) {
     });
 }
 
-function showNotification(message, status) {
-    const notification = document.getElementById('notification');
-    notification.innerText = message;
-    notification.style.backgroundColor = status === 'success' ? '#1DB954' : (status === 'error' ? '#E74C3C' : '#3498DB'); // Adding a default color for 'info' status
-    notification.classList.add('show');
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 2000);
-}
-
 function fetchQueue() {
+    console.log('Fetching current queue');
     fetch('/current_queue')
     .then(response => response.json())
     .then(data => {
+        console.log('Current queue data:', data);
         const queueContainer = document.getElementById('queue');
         queueContainer.innerHTML = '';
 
         if (data.current_track) {
-            const currentTrackElement = document.createElement('div');
-            currentTrackElement.className = 'queue-item current-track';
-            currentTrackElement.innerText = `${data.current_track.name} by ${data.current_track.artists}`;
-            queueContainer.appendChild(currentTrackElement);
+            queueContainer.innerHTML += `
+                <div class="queue-item current-track">
+                    ${data.current_track.name} by ${data.current_track.artists}
+                </div>`;
         }
 
         if (data.user_queue.length > 0) {
-            const userQueueLabel = document.createElement('h3');
-            userQueueLabel.innerText = 'In Queue';
-            queueContainer.appendChild(userQueueLabel);
-
+            queueContainer.innerHTML += '<h3>In Queue</h3>';
             data.user_queue.forEach(track => {
-                const trackElement = document.createElement('div');
-                trackElement.className = 'queue-item';
-                trackElement.innerText = `${track.name} by ${track.artists}`;
-                queueContainer.appendChild(trackElement);
+                queueContainer.innerHTML += `
+                    <div class="queue-item">
+                        ${track.name} by ${track.artists}
+                    </div>`;
             });
         }
 
         if (data.radio_queue.length > 0) {
-            const separator = document.createElement('hr');
-            separator.className = 'separator';
-            queueContainer.appendChild(separator);
-
-            const nowPlayingLabel = document.createElement('h3');
-            nowPlayingLabel.innerText = 'Up Next';
-            queueContainer.appendChild(nowPlayingLabel);
-
+            queueContainer.innerHTML += '<hr class="separator"><h3>Up Next</h3>';
             data.radio_queue.slice(0, 6).forEach(track => {
-                const trackElement = document.createElement('div');
-                trackElement.className = 'queue-item';
-                trackElement.innerText = `${track.name} by ${track.artists}`;
-                queueContainer.appendChild(trackElement);
+                queueContainer.innerHTML += `
+                    <div class="queue-item">
+                        ${track.name} by ${track.artists}
+                    </div>`;
             });
 
             if (data.radio_queue.length > 6) {
-                const moreTracksElement = document.createElement('div');
-                moreTracksElement.className = 'queue-item more-tracks';
-                moreTracksElement.innerText = `+ ${data.radio_queue.length - 6} more tracks`;
-                queueContainer.appendChild(moreTracksElement);
+                queueContainer.innerHTML += `
+                    <div class="queue-item more-tracks">
+                        + ${data.radio_queue.length - 6} more tracks
+                    </div>`;
             }
         }
-    });
-}
-
-function truncateText(text, maxLength) {
-    if (text.length > maxLength) {
-        return text.substring(0, maxLength - 3) + '...';
-    }
-    return text;
+    })
+    .catch(error => console.error('Error fetching queue:', error));
 }
 
 function fetchRecommendations(query) {
-    fetch(`/recommendations?query=${query}`)
+    console.log('Fetching recommendations for query:', query);
+    fetch(`/recommendations?query=${encodeURIComponent(query)}`)
     .then(response => response.json())
     .then(data => {
+        console.log('Recommendations data:', data);
         const resultsContainer = document.querySelector('.results');
         resultsContainer.innerHTML = '';
         data.forEach(track => {
-            const resultItem = document.createElement('div');
-            resultItem.className = 'result-item';
-            if (track.album_art) {
-                const img = document.createElement('img');
-                img.src = track.album_art;
-                img.alt = `${track.name} album art`;
-                img.className = 'album-art';
-                resultItem.appendChild(img);
-            }
-            const trackInfo = document.createElement('div');
-            trackInfo.className = 'track-info';
-            
-            const trackName = document.createElement('p');
-            trackName.className = 'track-name';
-            trackName.innerText = truncateText(track.name, 40);
-            trackName.title = track.name;
-            
-            const trackArtist = document.createElement('p');
-            trackArtist.className = 'track-artist';
-            trackArtist.innerText = truncateText(track.artists, 40);
-            trackArtist.title = track.artists;
-            
-            trackInfo.appendChild(trackName);
-            trackInfo.appendChild(trackArtist);
-            resultItem.appendChild(trackInfo);
-            
-            const button = document.createElement('button');
-            button.innerText = 'Add to Queue';
-            button.onclick = () => addTrackToQueue(track.uri);
-            resultItem.appendChild(button);
-            resultsContainer.appendChild(resultItem);
+            resultsContainer.innerHTML += `
+                <div class="result-item">
+                    ${track.album_art ? `<img src="${track.album_art}" alt="${track.name} album art" class="album-art">` : ''}
+                    <div class="track-info">
+                        <p class="track-name" title="${track.name}">${truncateText(track.name, 40)}</p>
+                        <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
+                    </div>
+                    <button onclick="addTrackToQueue('${track.uri}')">Add to Queue</button>
+                </div>`;
         });
+    })
+    .catch(error => console.error('Error fetching recommendations:', error));
+}
+
+function checkAdminStatus() {
+    console.log('Checking admin status');
+    fetch('/check_admin_status')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Admin status:', data);
+        updateUIForAdminStatus(data.is_admin);
+    })
+    .catch(error => console.error('Error checking admin status:', error));
+}
+
+function deactivateAdminMode() {
+    console.log('Attempting to deactivate admin mode');
+    fetch('/deactivate_admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Admin deactivation response:', data);
+        if (data.status === 'success') {
+            updateUIForAdminStatus(false);
+        } else {
+            console.error('Deactivation failed:', data.message);
+            showNotification('Failed to deactivate admin mode', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deactivating admin mode:', error);
+        showNotification('Error deactivating admin mode', 'error');
     });
 }
 
+// Event Listeners and Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded and parsed');
+    
+    const searchInput = document.querySelector('input[name="query"]');
+    const searchButton = document.querySelector('button[type="submit"]');
+    const iconContainer = document.querySelector('.icon-container');
+    const tipModal = document.getElementById('tipModal');
+    const tipButton = document.getElementById('tipButton');
+
     fetchQueue();
     setInterval(fetchQueue, 5000);
+    checkAdminStatus();
 
-    const searchInput = document.querySelector('input[name="query"]');
-    const searchButton = document.querySelector('button[type="submit"]'); // Updated selector to match your form
-    const header = document.querySelector('.header-container'); // For changing header color
-
-    // Event listener for typing in the search input
+    // Search input handler
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
         if (query.length > 2) {
             fetchRecommendations(query);
-        }
-    });
-
-    // Event listener for the search button click
-    searchButton.addEventListener('click', (e) => {
-        e.preventDefault(); // Prevent form submission
-        const query = searchInput.value;
-        if (query === ADMIN_KEYWORD) {
-            isAdmin = true;
-            showNotification('Admin mode activated', 'success');
-            console.log('Admin mode activated');  // Debug log
-            header.classList.add('admin-mode'); // Change header color for admin mode
         } else {
-            if (isAdmin) {
-                // console.log('Admin mode deactivated');  // Debug log
-            }
-            isAdmin = false;
-            //showNotification('Admin mode deactivated', 'info');
-            header.classList.remove('admin-mode'); // Reset header color
-        }
-        if (query.length > 2) {
-            fetchRecommendations(query);
+            document.querySelector('.results').innerHTML = '';
         }
     });
 
-    const modal = document.getElementById('tipModal');
-    const btn = document.getElementById('tipButton');
-    
-    if (btn && qrCodeAvailable) {
-        btn.style.display = 'inline-block';
-        const span = document.getElementsByClassName('close')[0];
-
-        btn.onclick = function() {
-            modal.style.display = 'block';
-            setTimeout(() => {
-                modal.classList.add('show');
-            }, 10);
+    // Icon click handler for admin mode deactivation
+    iconContainer.addEventListener('click', () => {
+        if (document.querySelector('.header-container').classList.contains('admin-mode')) {
+            deactivateAdminMode();
         }
+    });
 
-        span.onclick = function() {
-            modal.classList.remove('show');
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 300);
-        }
-
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.classList.remove('show');
-                setTimeout(() => {
-                    modal.style.display = 'none';
-                }, 300);
+    // Search button click handler
+    searchButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        const query = searchInput.value;
+        console.log('Search button clicked. Query:', query);
+        fetch('/check_admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ 'query': query })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Admin check response:', data);
+            updateUIForAdminStatus(data.is_admin);
+            if (query.length > 2) {
+                fetchRecommendations(query);
             }
-        }
-    } else if (btn) {
-        btn.style.display = 'none';
+        })
+        .catch(error => console.error('Error checking admin status:', error));
+    });
+
+    // Tip modal functionality
+    if (tipButton && typeof qrCodeAvailable !== 'undefined' && qrCodeAvailable) {
+        tipButton.style.display = 'inline-block';
+        const closeButton = tipModal.querySelector('.close');
+
+        tipButton.onclick = () => {
+            tipModal.style.display = 'block';
+            setTimeout(() => tipModal.classList.add('show'), 10);
+        };
+
+        closeButton.onclick = () => {
+            tipModal.classList.remove('show');
+            setTimeout(() => tipModal.style.display = 'none', 300);
+        };
+
+        window.onclick = (event) => {
+            if (event.target == tipModal) {
+                tipModal.classList.remove('show');
+                setTimeout(() => tipModal.style.display = 'none', 300);
+            }
+        };
+    } else if (tipButton) {
+        tipButton.style.display = 'none';
     }
 });

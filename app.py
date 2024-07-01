@@ -1,3 +1,4 @@
+import logging
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, send_from_directory
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -5,15 +6,23 @@ import time
 from flask_session import Session
 import os
 from dotenv import load_dotenv
+import argparse
 
 load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 app.secret_key = os.getenv('SECRET_KEY')
 
 # Admin keyword
 ADMIN_KEYWORD = os.getenv('ADMIN_KEYWORD')
+
+# Port number
+PORT = int(os.getenv('PORT', 5000))  # Default to 5000 if not set
 
 TIP_QR_CODE_PATH = '/static/tip-qr.png'
 
@@ -43,6 +52,25 @@ sp_oauth = SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redire
 
 # Store recently added tracks
 recent_tracks = {}
+
+@app.before_request
+def log_request_info():
+    if app.debug:
+        logger.debug('Headers: %s', request.headers)
+        logger.debug('Body: %s', request.get_data())
+
+@app.after_request
+def log_response_info(response):
+    if app.debug:
+        logger.debug('Response Status: %s', response.status)
+        logger.debug('Response Headers: %s', response.headers)
+    return response
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    logger.error('Method Not Allowed: %s', request.url)
+    logger.error('Request Method: %s', request.method)
+    return jsonify(error="Method Not Allowed"), 405
 
 @app.route('/')
 def index():
@@ -76,6 +104,39 @@ def get_token():
 
     return token_info
 
+@app.route('/check_admin', methods=['POST'])
+def check_admin():
+    query = request.form.get('query', '').lower()
+    is_admin = query == ADMIN_KEYWORD
+    if is_admin:
+        session['admin'] = True
+        logger.info("Admin mode activated")
+    else:
+        session.pop('admin', None)
+        logger.info("Admin mode not activated")
+    return jsonify({"is_admin": is_admin})
+
+
+@app.route('/check_admin_status', methods=['GET'])
+def check_admin_status():
+    is_admin = session.get('admin', False)
+    return jsonify({"is_admin": is_admin})
+
+@app.route('/deactivate_admin', methods=['POST'])
+def deactivate_admin():
+    logger.info("Deactivate admin route called")
+    logger.info(f"Session before: {session}")
+    
+    if 'admin' in session:
+        session.pop('admin', None)
+        logger.info("Admin key removed from session")
+    else:
+        logger.info("Admin key not found in session")
+    
+    logger.info(f"Session after: {session}")
+    
+    return jsonify({"status": "success", "message": "Admin mode deactivated", "session": dict(session)})
+
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     token_info = get_token()
@@ -83,13 +144,12 @@ def search():
         return redirect(url_for('index'))
 
     query = request.args.get('query')
-    admin_mode = check_if_admin()
+    admin_mode = session.get('admin', False)
 
     tracks = []
     if query:
         sp = spotipy.Spotify(auth=token_info['access_token'])
         if admin_mode:
-            # If admin keyword is entered, search for a default query
             results = sp.search(q='a', type='track', limit=10)
         else:
             results = sp.search(q=query, type='track', limit=10)
@@ -112,40 +172,42 @@ def search():
                            tracks=track_info, 
                            tip_qr_code_path=TIP_QR_CODE_PATH,
                            qr_code_available=qr_code_available,
-                           admin_mode=admin_mode,
-                           admin_keyword=ADMIN_KEYWORD)  # Pass the admin keyword
-
+                           admin_mode=admin_mode)
 
 @app.route('/queue', methods=['POST'])
 def queue():
     token_info = get_token()
     if not token_info:
+        logger.warning('No token info available')
         return redirect(url_for('index'))
 
-    track_uri = request.form['track_uri']
-    admin_mode = request.form.get('is_admin', 'false').lower() == 'true'
+    track_uri = request.form.get('track_uri')
+    admin_mode = session.get('admin', False)
     current_time = time.time()
 
-    app.logger.info(f"Queueing track: {track_uri}, Admin mode: {admin_mode}")  # Debug log
+    logger.info(f"Queueing track: {track_uri}, Admin mode: {admin_mode}")
 
-    # Check if admin mode is active or if track hasn't been added recently
+    if not track_uri:
+        logger.error("No track_uri provided in request")
+        return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
+
     if admin_mode or track_uri not in recent_tracks or current_time - recent_tracks[track_uri] >= 1200:
         recent_tracks[track_uri] = current_time
         sp = spotipy.Spotify(auth=token_info['access_token'])
         
         try:
             sp.add_to_queue(track_uri)
-            return jsonify({"status": "success", "message": "Track added to queue!"})
+            # Deactivate admin mode after successful queue addition
+            session['admin'] = False
+            return jsonify({"status": "success", "type": "success", "message": "Track added to queue!", "admin_deactivated": True})
         except spotipy.exceptions.SpotifyException as e:
-            app.logger.error(f"Spotify API error: {str(e)}")  # Debug log
+            logger.error(f"Spotify API error: {str(e)}")
             if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
-                return jsonify({"status": "error", "message": "No active device found. Please play a song on Spotify and try again."})
+                return jsonify({"status": "error", "type": "error", "message": "No active device found. Please play a song on Spotify and try again."})
             else:
-                return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"})
+                return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
     else:
-        return jsonify({"status": "error", "message": "This track has already been added recently."})
-
-
+        return jsonify({"status": "error", "type": "error", "message": "This track has already been added recently."})
 
 @app.route('/current_queue', methods=['GET'])
 def current_queue():
@@ -187,7 +249,17 @@ def current_queue():
             session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
             return redirect(url_for('current_queue'))
         else:
-            return jsonify({"status": "error", "message": "An error occurred. Please try again."})
+            return jsonify({"status": "error", "type": "error", "message": "An error occurred. Please try again."})
+
+@app.errorhandler(spotipy.exceptions.SpotifyException)
+def handle_spotify_exception(error):
+    if error.http_status == 401:
+        token_info = get_token()
+        if token_info:
+            return redirect(request.url)
+        else:
+            return redirect(url_for('index'))
+    return jsonify({"status": "error", "type": "error", "message": "An error occurred. Please try again."}), error.http_status
 
 @app.route('/recommendations', methods=['GET'])
 def recommendations():
@@ -230,4 +302,22 @@ def send_static(path):
     return send_from_directory('static', path)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    parser = argparse.ArgumentParser(description='Run the Flask app with optional debug mode.')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+    args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+        app.debug = True
+        logger.debug("Debug mode is enabled")
+    else:
+        logger.setLevel(logging.INFO)
+        app.debug = False
+        logger.info("Running in production mode")
+
+    # Silence other loggers
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    logging.getLogger('spotipy').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+    app.run(host='0.0.0.0', port=PORT)
