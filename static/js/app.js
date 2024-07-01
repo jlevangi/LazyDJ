@@ -80,10 +80,23 @@ let radioQueue = [];
 function addTrackToQueue(track_uri, trackName, artistName) {
     debugLog(`Attempting to add track to queue: ${trackName} by ${artistName}`);
 
-    fetch('/queue', {
+    // First, check admin status
+    fetch('/check_admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ 'track_uri': track_uri, 'track_name': trackName, 'artist_name': artistName })
+        body: new URLSearchParams({ 'query': document.querySelector('input[name="query"]').value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        debugLog('Admin check response:', data);
+        updateUIForAdminStatus(data.is_admin);
+        
+        // Now proceed with adding the track to the queue
+        return fetch('/queue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ 'track_uri': track_uri, 'track_name': trackName, 'artist_name': artistName })
+        });
     })
     .then(response => response.json())
     .then(data => {
@@ -252,6 +265,7 @@ function deactivateAdminMode() {
 }
 
 // Event Listeners and Initialization
+// Event Listeners and Initialization
 document.addEventListener('DOMContentLoaded', () => {
     debugLog('DOM fully loaded and parsed');
     
@@ -284,7 +298,21 @@ document.addEventListener('DOMContentLoaded', () => {
     searchButton.addEventListener('click', (e) => {
         e.preventDefault();
         const query = searchInput.value;
-        debugLog('Search button clicked. Query:', query);
+        performSearch(query);
+    });
+
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = searchInput.value;
+            performSearch(query);
+        }
+    });
+    // New search functionality
+    function performSearch(query) {
+        debugLog('Performing search. Query:', query);
+        
+        // First, check for admin status
         fetch('/check_admin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -294,11 +322,33 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             debugLog('Admin check response:', data);
             updateUIForAdminStatus(data.is_admin);
+            
+            // Now proceed with the search
             if (query.length > 2) {
                 fetchRecommendations(query);
             }
         })
-        .catch(error => console.error('Error checking admin status:', error));
+        .catch(error => {
+            console.error('Error checking admin status:', error);
+            // Proceed with search even if admin check fails
+            if (query.length > 2) {
+                fetchRecommendations(query);
+            }
+        });
+    }
+
+    searchButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        const query = searchInput.value;
+        performSearch(query);
+    });
+
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = searchInput.value;
+            performSearch(query);
+        }
     });
 
     // Tip modal functionality

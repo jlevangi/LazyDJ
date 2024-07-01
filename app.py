@@ -34,8 +34,7 @@ def qr_code_exists():
     return os.path.exists(qr_code_file)
 
 def check_if_admin():
-    query = request.args.get('query', '').lower()
-    return query == ADMIN_KEYWORD
+    return session.get('admin', False)
 
 # Configure server-side session
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -53,6 +52,9 @@ sp_oauth = SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redire
 
 # Store recently added tracks
 recent_tracks = {}
+
+def format_track_info(track):
+    return f"{track['name']} by {', '.join([artist['name'] for artist in track['artists']])}"
 
 @app.before_request
 def log_request_info():
@@ -109,10 +111,15 @@ def get_token():
 
     return token_info
 
+def check_if_admin(query=None):
+    if query:
+        return query.lower() == ADMIN_KEYWORD
+    return session.get('admin', False)
+
 @app.route('/check_admin', methods=['POST'])
 def check_admin():
     query = request.form.get('query', '').lower()
-    is_admin = query == ADMIN_KEYWORD
+    is_admin = check_if_admin(query)
     if is_admin:
         session['admin'] = True
         logger.info("Admin mode activated")
@@ -123,23 +130,19 @@ def check_admin():
 
 @app.route('/check_admin_status', methods=['GET'])
 def check_admin_status():
-    is_admin = session.get('admin', False)
+    is_admin = check_if_admin()
     return jsonify({"is_admin": is_admin})
 
 @app.route('/deactivate_admin', methods=['POST'])
 def deactivate_admin():
     logger.info("Deactivate admin route called")
-    logger.info(f"Session before: {session}")
-    
     if 'admin' in session:
         session.pop('admin', None)
         logger.info("Admin key removed from session")
+        return jsonify({"status": "success", "message": "Admin mode deactivated"})
     else:
         logger.info("Admin key not found in session")
-    
-    logger.info(f"Session after: {session}")
-    
-    return jsonify({"status": "success", "message": "Admin mode deactivated", "session": dict(session)})
+        return jsonify({"status": "error", "message": "Not in admin mode"})
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
@@ -148,17 +151,14 @@ def search():
         return redirect(url_for('index'))
 
     query = request.args.get('query')
-    admin_mode = session.get('admin', False)
+    admin_mode = check_if_admin()
     
     logger.debug(f"Search route accessed. Admin mode: {admin_mode}")
 
     tracks = []
     if query:
         sp = spotipy.Spotify(auth=token_info['access_token'])
-        if admin_mode:
-            results = sp.search(q='a', type='track', limit=10)
-        else:
-            results = sp.search(q=query, type='track', limit=10)
+        results = sp.search(q=query, type='track', limit=10, fields='tracks.items(name,artists(name),id,uri,album(images))')
         tracks = results['tracks']['items']
 
     track_info = []
@@ -167,9 +167,11 @@ def search():
             'name': track['name'],
             'artists': ', '.join([artist['name'] for artist in track['artists']]),
             'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
-            'uri': track['uri']
+            'uri': track['uri'],
+            'id': track['id']
         }
         track_info.append(track_data)
+        logger.debug(f"Search result: {format_track_info(track)}")
 
     qr_code_available = qr_code_exists()
     
@@ -190,7 +192,6 @@ def queue():
     track_uri = request.form.get('track_uri')
     track_name = request.form.get('track_name')
     artist_name = request.form.get('artist_name')
-    admin_mode = session.get('admin', False)
     current_time = time.time()
 
     if app.debug:
@@ -269,7 +270,6 @@ def current_queue():
             return redirect(url_for('current_queue'))
         else:
             return jsonify({"status": "error", "type": "error", "message": "An error occurred. Please try again."})
-
 
 @app.route('/recommendations', methods=['GET'])
 def recommendations():
