@@ -7,6 +7,7 @@ from flask_session import Session
 import os
 from dotenv import load_dotenv
 import argparse
+from spotipy.exceptions import SpotifyException
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -116,7 +117,6 @@ def check_admin():
         logger.info("Admin mode not activated")
     return jsonify({"is_admin": is_admin})
 
-
 @app.route('/check_admin_status', methods=['GET'])
 def check_admin_status():
     is_admin = session.get('admin', False)
@@ -145,6 +145,8 @@ def search():
 
     query = request.args.get('query')
     admin_mode = session.get('admin', False)
+    
+    app.logger.info(f"Search route accessed. Admin mode: {admin_mode}")
 
     tracks = []
     if query:
@@ -179,7 +181,7 @@ def queue():
     token_info = get_token()
     if not token_info:
         logger.warning('No token info available')
-        return redirect(url_for('index'))
+        return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
 
     track_uri = request.form.get('track_uri')
     admin_mode = session.get('admin', False)
@@ -197,17 +199,54 @@ def queue():
         
         try:
             sp.add_to_queue(track_uri)
-            # Deactivate admin mode after successful queue addition
-            session['admin'] = False
-            return jsonify({"status": "success", "type": "success", "message": "Track added to queue!", "admin_deactivated": True})
-        except spotipy.exceptions.SpotifyException as e:
+            return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
+        except SpotifyException as e:
             logger.error(f"Spotify API error: {str(e)}")
             if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
-                return jsonify({"status": "error", "type": "error", "message": "No active device found. Please play a song on Spotify and try again."})
+                return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
             else:
                 return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
     else:
-        return jsonify({"status": "error", "type": "error", "message": "This track has already been added recently."})
+        return jsonify({"status": "error", "type": "error", "message": "Track recently added. Please wait before re-adding."})
+
+    
+@app.route('/play_next', methods=['POST'])
+def play_next():
+    token_info = get_token()
+    if not token_info:
+        logger.warning('No token info available')
+        return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
+
+    track_uri = request.form.get('track_uri')
+    admin_mode = session.get('admin', False)
+
+    if not admin_mode:
+        return jsonify({"status": "error", "type": "error", "message": "Admin mode required for this action"}), 403
+
+    logger.info(f"Playing track next: {track_uri}")
+
+    if not track_uri:
+        logger.error("No track_uri provided in request")
+        return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
+
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    
+    try:
+        current_playback = sp.current_playback()
+        
+        if current_playback and current_playback['is_playing']:
+            sp.add_to_queue(track_uri)
+            sp.next_track()
+        else:
+            sp.start_playback(uris=[track_uri])
+        
+        return jsonify({"status": "success", "type": "success", "message": "Track will play next!"})
+    except SpotifyException as e:
+        logger.error(f"Spotify API error: {str(e)}")
+        if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
+            return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
+        else:
+            return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
 
 @app.route('/current_queue', methods=['GET'])
 def current_queue():

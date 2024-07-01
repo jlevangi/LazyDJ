@@ -37,17 +37,19 @@ function truncateText(text, maxLength) {
     return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
 }
 
-// UI Update Functions
 function updateUIForAdminStatus(isAdmin) {
+    console.log('Updating UI for admin status:', isAdmin);
     const header = document.querySelector('.header-container');
+    const playNextButtons = document.querySelectorAll('.play-next-button');
+    
     if (isAdmin) {
         header.classList.add('admin-mode');
+        playNextButtons.forEach(button => button.style.display = 'inline-block');
         console.log('Admin mode UI activated');
-        showNotification('Admin mode activated', 'success');
     } else {
         header.classList.remove('admin-mode');
+        playNextButtons.forEach(button => button.style.display = 'none');
         console.log('Admin mode UI deactivated');
-        // Removed notification for admin mode deactivation
     }
 }
 
@@ -62,19 +64,38 @@ function addTrackToQueue(track_uri) {
     .then(response => response.json())
     .then(data => {
         console.log('Server response:', data);
+        showNotification(data.message, data.type || 'success');
         if (data.status === 'success') {
-            showNotification(data.message || 'Track added to queue', 'success');
             fetchQueue();
             if (data.admin_deactivated) {
                 updateUIForAdminStatus(false);
             }
-        } else {
-            showNotification(data.message || 'Failed to add track to queue', 'error');
         }
     })
     .catch(error => {
-        console.error('Error adding track to queue:', error);
-        showNotification('Error adding track to queue', 'error');
+        console.error('Error - Track has already been added to the queue:', error);
+        showNotification('Track has already been added to the queue.', 'error');
+    });
+}
+
+function playTrackNext(track_uri) {
+    console.log('Attempting to play track next:', track_uri);
+    fetch('/play_next', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ 'track_uri': track_uri })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Server response:', data);
+        showNotification(data.message, data.type || 'success');
+        if (data.status === 'success') {
+            fetchQueue();
+        }
+    })
+    .catch(error => {
+        console.error('Error playing track next:', error);
+        showNotification('Error playing track next', 'error');
     });
 }
 
@@ -140,7 +161,11 @@ function fetchRecommendations(query) {
                         <p class="track-name" title="${track.name}">${truncateText(track.name, 40)}</p>
                         <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
                     </div>
-                    <button onclick="addTrackToQueue('${track.uri}')">Add to Queue</button>
+                    <div class="button-container">
+                        <button onclick="addTrackToQueue('${track.uri}')">Add to Queue</button>
+                        ${document.querySelector('.header-container').classList.contains('admin-mode') ?
+                            `<button onclick="playTrackNext('${track.uri}')" class="play-next-button">Play Next</button>` : ''}
+                    </div>
                 </div>`;
         });
     })
@@ -155,7 +180,9 @@ function checkAdminStatus() {
         console.log('Admin status:', data);
         updateUIForAdminStatus(data.is_admin);
     })
-    .catch(error => console.error('Error checking admin status:', error));
+    .catch(error => {
+        console.error('Error checking admin status:', error);
+    });
 }
 
 function deactivateAdminMode() {

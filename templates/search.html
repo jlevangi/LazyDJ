@@ -46,6 +46,9 @@
                         </p>
                     </div>
                     <button onclick="addTrackToQueue('{{ track.uri }}')">Add to Queue</button>
+                    {% if admin_mode %}
+                    <button onclick="playTrackNext('{{ track.uri }}')" class="play-next-button">Play Next</button>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
