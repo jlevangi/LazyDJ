@@ -263,7 +263,7 @@ h1 {
 }
 
 #notification.error {
-    background-color: #ff2727; /* Red background for errors */
+    background-color: #fa4444; /* Red background for errors */
     color: white;
 }
 
