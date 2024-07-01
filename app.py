@@ -182,6 +182,38 @@ def search():
                            qr_code_available=qr_code_available,
                            admin_mode=admin_mode)
 
+@app.route('/play_next', methods=['POST'])
+def play_next():
+    token_info = get_token()
+    if not token_info:
+        return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
+
+    track_uri = request.form.get('track_uri')
+    if not track_uri:
+        return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
+
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    
+    try:
+        # Get the currently playing track
+        current_playback = sp.current_playback()
+        if not current_playback:
+            return jsonify({"status": "error", "type": "error", "message": "No active playback found"}), 404
+
+        # Add the track to play next
+        sp.add_to_queue(track_uri, device_id=current_playback['device']['id'])
+        
+        # Skip to the next track (which will be the one we just added)
+        sp.next_track(device_id=current_playback['device']['id'])
+        
+        return jsonify({"status": "success", "type": "success", "message": "Track set to play next"})
+    except SpotifyException as e:
+        logger.error(f"Spotify API error: {str(e)}")
+        if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
+            return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
+        else:
+            return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
+
 @app.route('/queue', methods=['POST'])
 def queue():
     token_info = get_token()
