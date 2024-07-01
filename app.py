@@ -73,9 +73,13 @@ def method_not_allowed(error):
     logger.error('Request Method: %s', request.method)
     return jsonify(error="Method Not Allowed"), 405
 
+@app.route('/debug_status')
+def debug_status():
+    return jsonify({"debug_mode": app.debug})
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', debug_mode=app.debug)
 
 @app.route('/login')
 def login():
@@ -114,7 +118,7 @@ def check_admin():
         logger.info("Admin mode activated")
     else:
         session.pop('admin', None)
-        logger.info("Admin mode not activated")
+        logger.debug("Admin mode not activated")
     return jsonify({"is_admin": is_admin})
 
 @app.route('/check_admin_status', methods=['GET'])
@@ -146,7 +150,7 @@ def search():
     query = request.args.get('query')
     admin_mode = session.get('admin', False)
     
-    app.logger.info(f"Search route accessed. Admin mode: {admin_mode}")
+    logger.debug(f"Search route accessed. Admin mode: {admin_mode}")
 
     tracks = []
     if query:
@@ -184,63 +188,33 @@ def queue():
         return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
 
     track_uri = request.form.get('track_uri')
+    track_name = request.form.get('track_name')
+    artist_name = request.form.get('artist_name')
     admin_mode = session.get('admin', False)
     current_time = time.time()
 
-    logger.info(f"Queueing track: {track_uri}, Admin mode: {admin_mode}")
+    if app.debug:
+        logger.debug(f"Attempting to queue: {track_name} by {artist_name}")
 
     if not track_uri:
         logger.error("No track_uri provided in request")
         return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
 
-    if admin_mode or track_uri not in recent_tracks or current_time - recent_tracks[track_uri] >= 1200:
-        recent_tracks[track_uri] = current_time
-        sp = spotipy.Spotify(auth=token_info['access_token'])
-        
-        try:
-            sp.add_to_queue(track_uri)
-            return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
-        except SpotifyException as e:
-            logger.error(f"Spotify API error: {str(e)}")
-            if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
-                return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
-            else:
-                return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
-    else:
-        return jsonify({"status": "error", "type": "error", "message": "Track recently added. Please wait before re-adding."})
+    cooldown_period = 3  # 3 seconds cooldown
 
-    
-@app.route('/play_next', methods=['POST'])
-def play_next():
-    token_info = get_token()
-    if not token_info:
-        logger.warning('No token info available')
-        return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
+    if track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
+        if app.debug:
+            logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
+        return jsonify({"status": "cooldown", "message": "Track recently added"}), 200
 
-    track_uri = request.form.get('track_uri')
-    admin_mode = session.get('admin', False)
-
-    if not admin_mode:
-        return jsonify({"status": "error", "type": "error", "message": "Admin mode required for this action"}), 403
-
-    logger.info(f"Playing track next: {track_uri}")
-
-    if not track_uri:
-        logger.error("No track_uri provided in request")
-        return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
-
+    recent_tracks[track_uri] = current_time
     sp = spotipy.Spotify(auth=token_info['access_token'])
     
     try:
-        current_playback = sp.current_playback()
-        
-        if current_playback and current_playback['is_playing']:
-            sp.add_to_queue(track_uri)
-            sp.next_track()
-        else:
-            sp.start_playback(uris=[track_uri])
-        
-        return jsonify({"status": "success", "type": "success", "message": "Track will play next!"})
+        sp.add_to_queue(track_uri)
+        if app.debug:
+            logger.debug(f"Successfully added to queue: {track_name} by {artist_name}")
+        return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
     except SpotifyException as e:
         logger.error(f"Spotify API error: {str(e)}")
         if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
@@ -273,6 +247,11 @@ def current_queue():
             else:
                 radio_queue.append(track_info)
 
+        if app.debug:
+            logger.debug(f"Current track: {current_track['item']['name'] if current_track and current_track['is_playing'] else 'None'}")
+            logger.debug("User queue: " + ', '.join([f"{t['name']} by {t['artists']}" for t in user_queue]))
+            logger.debug("Radio queue (first 5): " + ', '.join([f"{t['name']} by {t['artists']}" for t in radio_queue[:5]]))
+
         return jsonify({
             'current_track': {
                 'name': current_track['item']['name'],
@@ -282,6 +261,7 @@ def current_queue():
             'radio_queue': radio_queue
         })
     except spotipy.exceptions.SpotifyException as e:
+        logger.error(f"Spotify API error in current_queue: {str(e)}")
         if e.http_status == 401:
             token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
             session['token_info'] = token_info
@@ -290,15 +270,6 @@ def current_queue():
         else:
             return jsonify({"status": "error", "type": "error", "message": "An error occurred. Please try again."})
 
-@app.errorhandler(spotipy.exceptions.SpotifyException)
-def handle_spotify_exception(error):
-    if error.http_status == 401:
-        token_info = get_token()
-        if token_info:
-            return redirect(request.url)
-        else:
-            return redirect(url_for('index'))
-    return jsonify({"status": "error", "type": "error", "message": "An error occurred. Please try again."}), error.http_status
 
 @app.route('/recommendations', methods=['GET'])
 def recommendations():
@@ -346,17 +317,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.debug:
-        logger.setLevel(logging.DEBUG)
         app.debug = True
+        logging.getLogger().setLevel(logging.DEBUG)
         logger.debug("Debug mode is enabled")
     else:
-        logger.setLevel(logging.INFO)
         app.debug = False
+        logging.getLogger().setLevel(logging.INFO)
         logger.info("Running in production mode")
-
-    # Silence other loggers
-    logging.getLogger('werkzeug').setLevel(logging.WARNING)
-    logging.getLogger('spotipy').setLevel(logging.WARNING)
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
 
     app.run(host='0.0.0.0', port=PORT)

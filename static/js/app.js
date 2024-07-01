@@ -5,8 +5,34 @@ if ('serviceWorker' in navigator) {
         .catch(error => console.error('ServiceWorker registration failed: ', error));
 }
 
+// Debug mode handling
+let debugMode = false;
+
+function setDebugMode(isDebug) {
+    debugMode = isDebug;
+    if (debugMode) {
+        console.log('Debug mode is enabled');
+    }
+}
+
+function debugLog(...args) {
+    if (debugMode) {
+        console.log(...args);
+    }
+}
+
+function initializeDebugMode() {
+    fetch('/debug_status')
+    .then(response => response.json())
+    .then(data => {
+        setDebugMode(data.debug_mode);
+    })
+    .catch(error => console.error('Error fetching debug status:', error));
+}
+
+// Notification handling
 function showNotification(message, type) {
-    console.log('showNotification called with message:', message, 'and type:', type);
+    debugLog('showNotification called with message:', message, 'and type:', type);
     const notification = document.getElementById('notification');
     if (!notification) {
         console.error('Notification element not found in the DOM');
@@ -16,70 +42,69 @@ function showNotification(message, type) {
     notification.className = type === 'error' ? 'error' : '';
     notification.style.display = 'block';
     
-    // Force a reflow before adding the 'show' class
-    notification.offsetHeight;
+    notification.offsetHeight; // Force a reflow
     
     notification.classList.add('show');
-    console.log('Notification displayed:', message);
     
     setTimeout(() => {
         notification.classList.remove('show');
-        console.log('Notification hidden after timeout');
-        
-        // Hide the notification after the fade-out transition
         setTimeout(() => {
             notification.style.display = 'none';
-        }, 500); // Match this to your CSS transition time
+        }, 500);
     }, 3000);
 }
 
+// UI helpers
 function truncateText(text, maxLength) {
     return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
 }
 
 function updateUIForAdminStatus(isAdmin) {
-    console.log('Updating UI for admin status:', isAdmin);
+    debugLog('Updating UI for admin status:', isAdmin);
     const header = document.querySelector('.header-container');
     const playNextButtons = document.querySelectorAll('.play-next-button');
     
     if (isAdmin) {
         header.classList.add('admin-mode');
         playNextButtons.forEach(button => button.style.display = 'inline-block');
-        console.log('Admin mode UI activated');
     } else {
         header.classList.remove('admin-mode');
         playNextButtons.forEach(button => button.style.display = 'none');
-        console.log('Admin mode UI deactivated');
     }
 }
 
-// API Interaction Functions
-function addTrackToQueue(track_uri) {
-    console.log('Attempting to add track to queue:', track_uri);
+// Queue management
+let userQueue = [];
+let radioQueue = [];
+
+function addTrackToQueue(track_uri, trackName, artistName) {
+    debugLog(`Attempting to add track to queue: ${trackName} by ${artistName}`);
+
     fetch('/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ 'track_uri': track_uri })
+        body: new URLSearchParams({ 'track_uri': track_uri, 'track_name': trackName, 'artist_name': artistName })
     })
     .then(response => response.json())
     .then(data => {
-        console.log('Server response:', data);
-        showNotification(data.message, data.type || 'success');
+        debugLog('Server response:', data.status);
         if (data.status === 'success') {
+            showNotification(data.message, 'success');
             fetchQueue();
-            if (data.admin_deactivated) {
-                updateUIForAdminStatus(false);
-            }
+        } else if (data.status === 'cooldown' || data.status === 'duplicate') {
+            showNotification(data.message, 'info');
+        } else {
+            showNotification(data.message, 'error');
         }
     })
     .catch(error => {
-        console.error('Error - Track has already been added to the queue:', error);
-        showNotification('Track has already been added to the queue.', 'error');
+        console.error('Error adding track to queue:', error);
+        showNotification('Error adding track to queue', 'error');
     });
 }
 
 function playTrackNext(track_uri) {
-    console.log('Attempting to play track next:', track_uri);
+    debugLog('Attempting to play track next:', track_uri);
     fetch('/play_next', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -87,7 +112,7 @@ function playTrackNext(track_uri) {
     })
     .then(response => response.json())
     .then(data => {
-        console.log('Server response:', data);
+        debugLog('Server response:', data);
         showNotification(data.message, data.type || 'success');
         if (data.status === 'success') {
             fetchQueue();
@@ -100,57 +125,72 @@ function playTrackNext(track_uri) {
 }
 
 function fetchQueue() {
-    console.log('Fetching current queue');
+    debugLog('Fetching current queue');
     fetch('/current_queue')
     .then(response => response.json())
     .then(data => {
-        console.log('Current queue data:', data);
-        const queueContainer = document.getElementById('queue');
-        queueContainer.innerHTML = '';
-
-        if (data.current_track) {
-            queueContainer.innerHTML += `
-                <div class="queue-item current-track">
-                    ${data.current_track.name} by ${data.current_track.artists}
-                </div>`;
-        }
-
-        if (data.user_queue.length > 0) {
-            queueContainer.innerHTML += '<h3>In Queue</h3>';
-            data.user_queue.forEach(track => {
-                queueContainer.innerHTML += `
-                    <div class="queue-item">
-                        ${track.name} by ${track.artists}
-                    </div>`;
-            });
-        }
-
-        if (data.radio_queue.length > 0) {
-            queueContainer.innerHTML += '<hr class="separator"><h3>Up Next</h3>';
-            data.radio_queue.slice(0, 6).forEach(track => {
-                queueContainer.innerHTML += `
-                    <div class="queue-item">
-                        ${track.name} by ${track.artists}
-                    </div>`;
-            });
-
-            if (data.radio_queue.length > 6) {
-                queueContainer.innerHTML += `
-                    <div class="queue-item more-tracks">
-                        + ${data.radio_queue.length - 6} more tracks
-                    </div>`;
-            }
-        }
+        debugLog('Current track:', data.current_track ? `${data.current_track.name} by ${data.current_track.artists}` : 'None');
+        debugLog('User queue:', data.user_queue.map(t => `${t.name} by ${t.artists}`).join(', '));
+        debugLog('Radio queue (first 5):', data.radio_queue.slice(0, 5).map(t => `${t.name} by ${t.artists}`).join(', '));
+        
+        userQueue = data.user_queue;
+        radioQueue = data.radio_queue;
+        updateQueueDisplay(data.current_track);
     })
     .catch(error => console.error('Error fetching queue:', error));
 }
 
+function updateQueueDisplay(currentTrack) {
+    debugLog('Updating queue display');
+    const queueContainer = document.getElementById('queue');
+    queueContainer.innerHTML = '';
+
+    if (currentTrack) {
+        queueContainer.innerHTML += `
+            <div class="queue-item current-track">
+                <strong>Now Playing:</strong> ${currentTrack.name} by ${currentTrack.artists}
+            </div>`;
+    }
+
+    if (userQueue.length > 0) {
+        queueContainer.innerHTML += '<h3>In Queue</h3>';
+        userQueue.forEach(track => {
+            queueContainer.innerHTML += `
+                <div class="queue-item">
+                    ${track.name} by ${track.artists}
+                </div>`;
+        });
+    }
+
+    if (radioQueue.length > 0) {
+        queueContainer.innerHTML += '<h3>Up Next</h3>';
+        radioQueue.slice(0, 5).forEach(track => {
+            queueContainer.innerHTML += `
+                <div class="queue-item">
+                    ${track.name} by ${track.artists}
+                </div>`;
+        });
+
+        if (radioQueue.length > 5) {
+            queueContainer.innerHTML += `
+                <div class="queue-item more-tracks">
+                    + ${radioQueue.length - 5} more tracks
+                </div>`;
+        }
+    }
+
+    if (userQueue.length === 0 && radioQueue.length === 0) {
+        queueContainer.innerHTML += '<p>No tracks in queue</p>';
+    }
+}
+
+// Recommendations and search
 function fetchRecommendations(query) {
-    console.log('Fetching recommendations for query:', query);
+    debugLog('Fetching recommendations for query:', query);
     fetch(`/recommendations?query=${encodeURIComponent(query)}`)
     .then(response => response.json())
     .then(data => {
-        console.log('Recommendations data:', data);
+        debugLog('Recommendations data:', data);
         const resultsContainer = document.querySelector('.results');
         resultsContainer.innerHTML = '';
         data.forEach(track => {
@@ -162,7 +202,7 @@ function fetchRecommendations(query) {
                         <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
                     </div>
                     <div class="button-container">
-                        <button onclick="addTrackToQueue('${track.uri}')">Add to Queue</button>
+                        <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}')">Add to Queue</button>
                         ${document.querySelector('.header-container').classList.contains('admin-mode') ?
                             `<button onclick="playTrackNext('${track.uri}')" class="play-next-button">Play Next</button>` : ''}
                     </div>
@@ -172,12 +212,13 @@ function fetchRecommendations(query) {
     .catch(error => console.error('Error fetching recommendations:', error));
 }
 
+// Admin functions
 function checkAdminStatus() {
-    console.log('Checking admin status');
+    debugLog('Checking admin status');
     fetch('/check_admin_status')
     .then(response => response.json())
     .then(data => {
-        console.log('Admin status:', data);
+        debugLog('Admin status:', data);
         updateUIForAdminStatus(data.is_admin);
     })
     .catch(error => {
@@ -186,7 +227,7 @@ function checkAdminStatus() {
 }
 
 function deactivateAdminMode() {
-    console.log('Attempting to deactivate admin mode');
+    debugLog('Attempting to deactivate admin mode');
     fetch('/deactivate_admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,7 +237,7 @@ function deactivateAdminMode() {
         return response.json();
     })
     .then(data => {
-        console.log('Admin deactivation response:', data);
+        debugLog('Admin deactivation response:', data);
         if (data.status === 'success') {
             updateUIForAdminStatus(false);
         } else {
@@ -212,7 +253,7 @@ function deactivateAdminMode() {
 
 // Event Listeners and Initialization
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM fully loaded and parsed');
+    debugLog('DOM fully loaded and parsed');
     
     const searchInput = document.querySelector('input[name="query"]');
     const searchButton = document.querySelector('button[type="submit"]');
@@ -220,11 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const tipModal = document.getElementById('tipModal');
     const tipButton = document.getElementById('tipButton');
 
+    initializeDebugMode();
     fetchQueue();
     setInterval(fetchQueue, 5000);
     checkAdminStatus();
 
-    // Search input handler
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
         if (query.length > 2) {
@@ -234,18 +275,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Icon click handler for admin mode deactivation
     iconContainer.addEventListener('click', () => {
         if (document.querySelector('.header-container').classList.contains('admin-mode')) {
             deactivateAdminMode();
         }
     });
 
-    // Search button click handler
     searchButton.addEventListener('click', (e) => {
         e.preventDefault();
         const query = searchInput.value;
-        console.log('Search button clicked. Query:', query);
+        debugLog('Search button clicked. Query:', query);
         fetch('/check_admin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -253,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(response => response.json())
         .then(data => {
-            console.log('Admin check response:', data);
+            debugLog('Admin check response:', data);
             updateUIForAdminStatus(data.is_admin);
             if (query.length > 2) {
                 fetchRecommendations(query);
