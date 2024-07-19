@@ -1,5 +1,7 @@
 __pycache__
+__flask_session__
 *.pyc
 .git
 .venv
 .github
+.cache
