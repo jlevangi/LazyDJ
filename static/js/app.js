@@ -80,14 +80,12 @@ let radioQueue = [];
 function addTrackToQueue(track_uri, trackName, artistName) {
     debugLog(`Attempting to add track to queue: ${trackName} by ${artistName}`);
 
-    // First, check admin status
     fetch('/check_admin_status')
     .then(response => response.json())
     .then(data => {
         debugLog('Admin check response:', data);
         updateUIForAdminStatus(data.is_admin);
         
-        // Now proceed with adding the track to the queue
         return fetch('/queue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -154,22 +152,22 @@ function fetchQueue() {
     .catch(error => console.error('Error fetching queue:', error));
 }
 
-function updateQueueDisplay(currentTrack) {
-    debugLog('Updating queue display');
-    const queueContainer = document.getElementById('queue');
-    queueContainer.innerHTML = '';
-
-    if (currentTrack) {
-        queueContainer.innerHTML += `
-            <div class="queue-item current-track">
-                ${currentTrack.name} by ${currentTrack.artists}
-            </div>`;
+function updateNowPlayingBar(currentTrack) {
+    const currentTrackInfo = document.getElementById('current-track-info');
+    if (currentTrackInfo) {
+        if (currentTrack) {
+            currentTrackInfo.innerHTML = `<strong>Now playing:</strong><br>${currentTrack.name} - ${currentTrack.artists}`;
+        } else {
+            currentTrackInfo.innerHTML = '<strong>Now playing:</strong><br>No track playing';
+        }
     }
+}
 
+function updateQueueList(container) {
     if (userQueue.length > 0) {
-        queueContainer.innerHTML += '<h3>In Queue</h3>';
+        container.innerHTML += '<h3>In Queue</h3>';
         userQueue.forEach(track => {
-            queueContainer.innerHTML += `
+            container.innerHTML += `
                 <div class="queue-item">
                     ${track.name} by ${track.artists}
                 </div>`;
@@ -177,16 +175,16 @@ function updateQueueDisplay(currentTrack) {
     }
 
     if (radioQueue.length > 0) {
-        queueContainer.innerHTML += '<h3>Up Next</h3>';
+        container.innerHTML += '<h3>Up Next</h3>';
         radioQueue.slice(0, 5).forEach(track => {
-            queueContainer.innerHTML += `
+            container.innerHTML += `
                 <div class="queue-item">
                     ${track.name} by ${track.artists}
                 </div>`;
         });
 
         if (radioQueue.length > 5) {
-            queueContainer.innerHTML += `
+            container.innerHTML += `
                 <div class="queue-item more-tracks">
                     + ${radioQueue.length - 5} more tracks
                 </div>`;
@@ -194,7 +192,30 @@ function updateQueueDisplay(currentTrack) {
     }
 
     if (userQueue.length === 0 && radioQueue.length === 0) {
-        queueContainer.innerHTML += '<p>No tracks in queue</p>';
+        container.innerHTML += '<p>No tracks in queue</p>';
+    }
+}
+
+function updateQueueDisplay(currentTrack) {
+    debugLog('Updating queue display');
+    
+    if (isMobile()) {
+        updateNowPlayingBar(currentTrack);
+        const queueList = document.querySelector('.queue-list');
+        if (queueList) {
+            queueList.innerHTML = ''; // Clear existing content
+            updateQueueList(queueList);
+        }
+    } else {
+        const queueContainer = document.querySelector('.queue-container');
+        queueContainer.innerHTML = `<h2>Now Playing</h2>`;
+        if (currentTrack) {
+            queueContainer.innerHTML += `
+                <div class="queue-item current-track">
+                    ${currentTrack.name} by ${currentTrack.artists}
+                </div>`;
+        }
+        updateQueueList(queueContainer);
     }
 }
 
@@ -207,7 +228,7 @@ function fetchRecommendations(query) {
         debugLog('Recommendations data:', data);
         const resultsContainer = document.querySelector('.results');
         resultsContainer.innerHTML = '';
-        data.forEach(track => {
+        data.slice(0, 8).forEach(track => {
             resultsContainer.innerHTML += `
                 <div class="result-item">
                     ${track.album_art ? `<img src="${track.album_art}" alt="${track.name} album art" class="album-art">` : ''}
@@ -265,7 +286,11 @@ function deactivateAdminMode() {
     });
 }
 
-// Event Listeners and Initialization
+// Mobile detection
+function isMobile() {
+    return window.innerWidth <= 767;
+}
+
 // Event Listeners and Initialization
 document.addEventListener('DOMContentLoaded', () => {
     debugLog('DOM fully loaded and parsed');
@@ -275,11 +300,71 @@ document.addEventListener('DOMContentLoaded', () => {
     const iconContainer = document.querySelector('.icon-container');
     const tipModal = document.getElementById('tipModal');
     const tipButton = document.getElementById('tipButton');
+    const queueContainer = document.querySelector('.queue-container');
+    const clearButton = document.querySelector('.clear-button');
 
     initializeDebugMode();
     fetchQueue();
     setInterval(fetchQueue, 5000);
     checkAdminStatus();
+
+    // Function to create and insert Now Playing bar
+    function createNowPlayingBar() {
+        if (isMobile() && !document.querySelector('.now-playing-bar')) {
+            const queueContainer = document.querySelector('.queue-container');
+            queueContainer.innerHTML = ''; // Clear existing content
+            const nowPlayingBar = document.createElement('div');
+            nowPlayingBar.className = 'now-playing-bar';
+            nowPlayingBar.innerHTML = `
+                <div class="now-playing-info">
+                    <span id="current-track-info"><strong>Now playing:</strong><br>No track playing</span>
+                </div>
+                <div class="expand-button">▲</div>
+            `;
+            queueContainer.appendChild(nowPlayingBar);
+
+            const queueList = document.createElement('div');
+            queueList.className = 'queue-list';
+            queueContainer.appendChild(queueList);
+
+            nowPlayingBar.addEventListener('click', () => {
+                queueContainer.classList.toggle('expanded');
+            });
+        }
+    }
+
+    clearButton.addEventListener('click', () => {
+        searchInput.value = '';
+        document.querySelector('.results').innerHTML = '';
+        debugLog('Search input cleared');
+    });
+
+    // Function to remove Now Playing bar
+    function removeNowPlayingBar() {
+        const nowPlayingBar = document.querySelector('.now-playing-bar');
+        const queueList = document.querySelector('.queue-list');
+        if (nowPlayingBar) {
+            nowPlayingBar.remove();
+        }
+        if (queueList) {
+            queueList.remove();
+        }
+        queueContainer.classList.remove('expanded');
+    }
+
+    // Initial setup
+    if (isMobile()) {
+        createNowPlayingBar();
+    }
+
+    // Handle resize events
+    window.addEventListener('resize', () => {
+        if (isMobile()) {
+            createNowPlayingBar();
+        } else {
+            removeNowPlayingBar();
+        }
+    });
 
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
@@ -296,24 +381,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    searchButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        const query = searchInput.value;
-        performSearch(query);
-    });
-
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const query = searchInput.value;
-            performSearch(query);
-        }
-    });
-    // New search functionality
     function performSearch(query) {
         debugLog('Performing search. Query:', query);
         
-        // First, check for admin status
         fetch('/check_admin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -324,14 +394,12 @@ document.addEventListener('DOMContentLoaded', () => {
             debugLog('Admin check response:', data);
             updateUIForAdminStatus(data.is_admin);
             
-            // Now proceed with the search
             if (query.length > 2) {
                 fetchRecommendations(query);
             }
         })
         .catch(error => {
             console.error('Error checking admin status:', error);
-            // Proceed with search even if admin check fails
             if (query.length > 2) {
                 fetchRecommendations(query);
             }
