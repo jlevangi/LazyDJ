@@ -5,3 +5,8 @@ __flask_session__
 .venv
 .github
 .cache
+/logs
+.pytest_cache
+/flask_session
+
+

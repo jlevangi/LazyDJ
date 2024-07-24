@@ -420,28 +420,126 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Tip modal functionality
-    if (tipButton && typeof qrCodeAvailable !== 'undefined' && qrCodeAvailable) {
-        tipButton.style.display = 'inline-block';
-        const closeButton = tipModal.querySelector('.close');
+// Tip modal functionality
+if (tipButton && typeof qrCodeAvailable !== 'undefined' && qrCodeAvailable) {
+    tipButton.style.display = 'inline-block';
+    const closeButton = tipModal.querySelector('.close');
 
-        tipButton.onclick = () => {
-            tipModal.style.display = 'block';
-            setTimeout(() => tipModal.classList.add('show'), 10);
-        };
+    tipButton.onclick = () => {
+        tipModal.style.display = 'block';
+        setTimeout(() => tipModal.classList.add('show'), 10);
+    };
 
-        closeButton.onclick = () => {
+    closeButton.onclick = () => {
+        tipModal.classList.remove('show');
+        setTimeout(() => tipModal.style.display = 'none', 300);
+    };
+
+    window.onclick = (event) => {
+        if (event.target == tipModal) {
             tipModal.classList.remove('show');
             setTimeout(() => tipModal.style.display = 'none', 300);
-        };
+        }
+    };
+} else if (tipButton) {
+    tipButton.style.display = 'none';
+}
+});
 
-        window.onclick = (event) => {
-            if (event.target == tipModal) {
-                tipModal.classList.remove('show');
-                setTimeout(() => tipModal.style.display = 'none', 300);
-            }
-        };
-    } else if (tipButton) {
-        tipButton.style.display = 'none';
+// Additional utility functions
+
+function escapeHtml(unsafe) {
+return unsafe
+     .replace(/&/g, "&amp;")
+     .replace(/</g, "&lt;")
+     .replace(/>/g, "&gt;")
+     .replace(/"/g, "&quot;")
+     .replace(/'/g, "&#039;");
+}
+
+// Admin-specific functions
+function clearQueue() {
+if (!confirm('Are you sure you want to clear the queue?')) return;
+
+fetch('/admin_actions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'clear_queue' })
+})
+.then(response => response.json())
+.then(data => {
+    if (data.status === 'success') {
+        showNotification('Queue cleared successfully', 'success');
+        fetchQueue();
+    } else {
+        showNotification('Failed to clear queue', 'error');
     }
+})
+.catch(error => {
+    console.error('Error clearing queue:', error);
+    showNotification('Error clearing queue', 'error');
+});
+}
+
+function skipTrack() {
+fetch('/admin_actions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'skip_track' })
+})
+.then(response => response.json())
+.then(data => {
+    if (data.status === 'success') {
+        showNotification('Track skipped', 'success');
+        fetchQueue();
+    } else {
+        showNotification('Failed to skip track', 'error');
+    }
+})
+.catch(error => {
+    console.error('Error skipping track:', error);
+    showNotification('Error skipping track', 'error');
+});
+}
+
+// Function to update admin controls
+function updateAdminControls() {
+const adminControlsContainer = document.querySelector('.admin-controls');
+if (!adminControlsContainer) return;
+
+if (document.querySelector('.header-container').classList.contains('admin-mode')) {
+    adminControlsContainer.innerHTML = `
+        <button onclick="clearQueue()">Clear Queue</button>
+        <button onclick="skipTrack()">Skip Track</button>
+    `;
+    adminControlsContainer.style.display = 'block';
+} else {
+    adminControlsContainer.style.display = 'none';
+}
+}
+
+// Update the updateUIForAdminStatus function
+function updateUIForAdminStatus(isAdmin) {
+debugLog('Updating UI for admin status:', isAdmin);
+const header = document.querySelector('.header-container');
+const playNextButtons = document.querySelectorAll('.play-next-button');
+
+if (isAdmin) {
+    header.classList.add('admin-mode');
+    playNextButtons.forEach(button => button.style.display = 'inline-block');
+} else {
+    header.classList.remove('admin-mode');
+    playNextButtons.forEach(button => button.style.display = 'none');
+}
+
+updateAdminControls();
+}
+
+// Call updateAdminControls when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+// ... (previous code remains the same)
+
+updateAdminControls();
+
+// ... (rest of the code remains the same)
 });
