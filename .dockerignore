@@ -6,3 +6,7 @@ __flask_session__
 .github
 .cache
 /logs
+.pytest_cache
+/flask_session
+
+
