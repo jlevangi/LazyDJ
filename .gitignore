@@ -3,5 +3,7 @@
 /cache
 *.cache
 /__pycache__
+.pytest_cache
 /venv
 /static/tip-qr.png
+/logs

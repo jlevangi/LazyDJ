@@ -5,3 +5,4 @@ __flask_session__
 .venv
 .github
 .cache
+/logs
