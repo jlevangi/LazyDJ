@@ -1,18 +1,34 @@
 // queue.js
-import { showNotification } from './ui.js';
+import { showNotification, updateQueueDisplay } from './ui.js';
 import { updateUIForAdminStatus } from './ui.js';
 import { debugLog } from './util.js';
 
 let userQueue = [];
 let radioQueue = [];
 let addToQueueTimeout = null;
+let lastRequestTime = 0;
+let currentRequest = null;
+const DEBOUNCE_DELAY = 300; // 300ms debounce time
 
 export function addTrackToQueue(track_uri, trackName, artistName) {
     console.log(`Attempting to add track to queue: ${trackName} by ${artistName}`);
 
+    const currentTime = Date.now();
+    if (currentTime - lastRequestTime < DEBOUNCE_DELAY) {
+        console.log('Debounce: Ignoring rapid request');
+        return;
+    }
+
+    lastRequestTime = currentTime;
+
     // Clear any existing timeout
     if (addToQueueTimeout) {
         clearTimeout(addToQueueTimeout);
+    }
+
+    // Cancel any ongoing request
+    if (currentRequest) {
+        currentRequest.abort();
     }
 
     // Set a new timeout
@@ -23,6 +39,9 @@ export function addTrackToQueue(track_uri, trackName, artistName) {
             console.log('Admin check response:', data);
             updateUIForAdminStatus(data.is_admin);
             
+            currentRequest = new AbortController();
+            const signal = currentRequest.signal;
+
             return fetch('/queue', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -31,7 +50,8 @@ export function addTrackToQueue(track_uri, trackName, artistName) {
                     'track_name': trackName, 
                     'artist_name': artistName,
                     'is_admin': data.is_admin
-                })
+                }),
+                signal: signal
             });
         })
         .then(response => response.json())
@@ -47,10 +67,17 @@ export function addTrackToQueue(track_uri, trackName, artistName) {
             }
         })
         .catch(error => {
-            console.error('Error adding track to queue:', error);
-            showNotification('Error adding track to queue', 'error');
+            if (error.name === 'AbortError') {
+                console.log('Request was cancelled');
+            } else {
+                console.error('Error adding track to queue:', error);
+                showNotification('Error adding track to queue', 'error');
+            }
+        })
+        .finally(() => {
+            currentRequest = null;
         });
-    }, 300); // 300ms debounce time
+    }, DEBOUNCE_DELAY);
 }
 
 export function playTrackNow(track_uri) {
@@ -83,18 +110,27 @@ export function fetchQueue() {
     console.log('Fetching current queue');
     return fetch('/current_queue')
     .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         console.log('Queue fetch response:', response);
         return response.json();
     })
     .then(data => {
         console.log('Queue data:', data);
-        userQueue = data.user_queue || [];
-        radioQueue = data.radio_queue || [];
+        if (data && typeof data === 'object') {
+            userQueue = data.user_queue || [];
+            radioQueue = data.radio_queue || [];
+            updateQueueDisplay(data);
+        } else {
+            console.error('Received invalid data from server:', data);
+            throw new Error('Invalid data received from server');
+        }
         return data;
     })
     .catch(error => {
         console.error('Error fetching queue:', error);
-        showNotification('Error fetching queue', 'error');
+        showNotification('Error fetching queue: ' + error.message, 'error');
     });
 }
 
@@ -106,18 +142,23 @@ export function clearQueue() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'clear_queue' })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
             showNotification('Queue cleared successfully', 'success');
             fetchQueue();
         } else {
-            showNotification('Failed to clear queue', 'error');
+            showNotification('Failed to clear queue: ' + (data.message || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
         console.error('Error clearing queue:', error);
-        showNotification('Error clearing queue', 'error');
+        showNotification('Error clearing queue: ' + error.message, 'error');
     });
 }
 
@@ -127,17 +168,22 @@ export function skipTrack() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'skip_track' })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
             showNotification('Track skipped', 'success');
             fetchQueue();
         } else {
-            showNotification('Failed to skip track', 'error');
+            showNotification('Failed to skip track: ' + (data.message || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
         console.error('Error skipping track:', error);
-        showNotification('Error skipping track', 'error');
+        showNotification('Error skipping track: ' + error.message, 'error');
     });
 }

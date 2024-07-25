@@ -1,7 +1,7 @@
 //  search.js
 import { showNotification } from './ui.js';
 import { truncateText, debugLog } from './util.js';
-import { addTrackToQueue, playTrackNow } from './queue.js';
+import { addTrackToQueue, playTrackNow, fetchQueue } from './queue.js';
 import { isInAdminMode } from './admin.js';
 
 export function fetchRecommendations(query) {

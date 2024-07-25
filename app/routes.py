@@ -8,12 +8,14 @@ from spotipy.exceptions import SpotifyException
 import time
 import logging
 import os
+from threading import Lock
 
 bp = Blueprint('routes', __name__)
 logger = logging.getLogger(__name__)
 
 # Store recently added tracks
 recent_tracks = {}
+queue_lock = Lock()
 
 def qr_code_exists():
     """Check if the QR code file exists in the static folder."""
@@ -56,7 +58,7 @@ def search():
 
     # If it's not an AJAX request, render the full page
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        qr_code_available = qr_code_exists()  # Add this line
+        qr_code_available = qr_code_exists()
         return render_template('search.html', tracks=[], query=query, qr_code_available=qr_code_available)
 
     try:
@@ -88,7 +90,6 @@ def search():
         return jsonify({"error": error_message}), 500
 
 
-
 @bp.route('/queue', methods=['POST'])
 def queue():
     token_info = get_token()
@@ -111,25 +112,28 @@ def queue():
 
     cooldown_period = 1200  # 20 minutes in seconds
 
-    if not is_admin and track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
-        if current_app.debug:
-            logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
-        return jsonify({"status": "error", "message": "This track was recently played. Please try again later."}), 200
+    with queue_lock:
+        if not is_admin and track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
+            if current_app.debug:
+                logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
+            return jsonify({"status": "error", "message": "This track was recently played. Please try again later."}), 200
 
-    recent_tracks[track_uri] = current_time
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    
-    try:
-        sp.add_to_queue(track_uri)
-        if current_app.debug:
-            logger.debug(f"Successfully added to queue: {track_name} by {artist_name}")
-        return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
-    except SpotifyException as e:
-        logger.error(f"Spotify API error: {str(e)}")
-        if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
-            return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
-        else:
-            return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
+        recent_tracks[track_uri] = current_time
+        sp = spotipy.Spotify(auth=token_info['access_token'])
+        
+        try:
+            sp.add_to_queue(track_uri)
+            if current_app.debug:
+                logger.debug(f"Successfully added to queue: {track_name} by {artist_name}")
+            return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
+        except SpotifyException as e:
+            logger.error(f"Spotify API error: {str(e)}")
+            if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
+                return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
+            else:
+                return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
+
+
 
 @bp.route('/play_now', methods=['POST'])
 def play_now():

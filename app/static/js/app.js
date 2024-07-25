@@ -20,7 +20,11 @@ function initializeApp() {
     console.log('Initializing queue fetch');
     Queue.fetchQueue().then(data => {
         console.log('Queue data received:', data);
-        UI.updateQueueDisplay(data);
+        if (data) {
+            UI.updateQueueDisplay(data);
+        } else {
+            console.error('Received undefined data from fetchQueue');
+        }
     }).catch(error => console.error('Error fetching queue:', error));
     setInterval(() => Queue.fetchQueue().then(UI.updateQueueDisplay).catch(error => console.error('Error fetching queue:', error)), 5000);
 
@@ -146,9 +150,11 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Expose necessary functions to the global scope for inline event handlers
 window.addTrackToQueue = Queue.addTrackToQueue;
-window.playTrackNext = Queue.playTrackNow;
+window.playTrackNow = Queue.playTrackNow;
 window.clearQueue = Queue.clearQueue;
 window.skipTrack = Queue.skipTrack;
 window.isInAdminMode = Admin.isInAdminMode;
+window.performSearch = Search.performSearch;
+window.fetchRecommendations = Search.fetchRecommendations;
 
 console.log('App.js loaded');

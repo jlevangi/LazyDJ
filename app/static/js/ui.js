@@ -81,7 +81,7 @@ export function removeNowPlayingBar() {
 }
 
 export function updateQueueDisplay(data) {
-    debugLog('Updating queue display');
+    console.log('Updating queue display with data:', data);
     const queueContainer = document.querySelector('.queue-container');
     if (!queueContainer) {
         console.error('Queue container not found');
@@ -90,14 +90,16 @@ export function updateQueueDisplay(data) {
 
     queueContainer.innerHTML = '<h2>Now Playing</h2>';
     
-    if (data.current_track) {
+    if (data && data.current_track) {
         queueContainer.innerHTML += `
             <div class="queue-item current-track">
                 ${escapeHtml(data.current_track.name)} by ${escapeHtml(data.current_track.artists)}
             </div>`;
+    } else {
+        queueContainer.innerHTML += '<div class="queue-item">No track currently playing</div>';
     }
 
-    if (data.user_queue && data.user_queue.length > 0) {
+    if (data && data.user_queue && data.user_queue.length > 0) {
         queueContainer.innerHTML += '<h3>User Queue</h3>';
         data.user_queue.forEach(track => {
             queueContainer.innerHTML += `
@@ -107,7 +109,7 @@ export function updateQueueDisplay(data) {
         });
     }
 
-    if (data.radio_queue && data.radio_queue.length > 0) {
+    if (data && data.radio_queue && data.radio_queue.length > 0) {
         queueContainer.innerHTML += '<h3>Radio Queue</h3>';
         data.radio_queue.slice(0, 5).forEach(track => {
             queueContainer.innerHTML += `
@@ -124,7 +126,8 @@ export function updateQueueDisplay(data) {
         }
     }
 
-    if ((!data.user_queue || data.user_queue.length === 0) && (!data.radio_queue || data.radio_queue.length === 0)) {
+    if ((!data || !data.user_queue || data.user_queue.length === 0) && 
+        (!data || !data.radio_queue || data.radio_queue.length === 0)) {
         queueContainer.innerHTML += '<p>No tracks in queue</p>';
     }
 }
