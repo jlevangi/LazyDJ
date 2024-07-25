@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, current_app
 from werkzeug.exceptions import HTTPException
 from spotipy.exceptions import SpotifyException
 import logging
+import traceback  # Add this import at the top of the file
 
 bp = Blueprint('errors', __name__)
 logger = logging.getLogger(__name__)
@@ -19,6 +20,13 @@ def internal_error(error):
 @bp.app_errorhandler(Exception)
 def handle_unexpected_error(error):
     logger.error(f'Unexpected Error: {error}')
+    logger.error(traceback.format_exc())
+    if current_app.debug:
+        # In debug mode, return the error details
+        return jsonify({
+            "error": str(error),
+            "traceback": traceback.format_exc()
+        }), 500
     return jsonify({"error": "An unexpected error occurred"}), 500
 
 @bp.app_errorhandler(SpotifyException)

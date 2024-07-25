@@ -1,5 +1,7 @@
 from flask import current_app
 import time
+import uuid
+
 
 class Track:
     def __init__(self, uri, name, artists, album_art=None):
@@ -61,3 +63,49 @@ def clear_expired_tracks():
                       if current_time - track.added_at > cooldown_period]
     for uri in expired_tracks:
         del recent_tracks[uri]
+
+class Session:
+    def __init__(self, owner_id, session_id=None):
+        self.session_id = session_id or str(uuid.uuid4())[:8]
+        self.owner_id = owner_id
+        self.created_at = time.time()
+        self.participants = set([owner_id])
+        self.queue = []
+
+    def add_participant(self, participant_id):
+        self.participants.add(participant_id)
+
+    def add_to_queue(self, track):
+        self.queue.append(track)
+
+    def remove_from_queue(self, track_uri):
+        self.queue = [t for t in self.queue if t['uri'] != track_uri]
+
+    def get_queue(self):
+        return self.queue
+
+    def clear_queue(self):
+        self.queue = []
+
+# In-memory store for active sessions
+active_sessions = {}
+
+def create_session(owner_id):
+    session = Session(owner_id)
+    active_sessions[session.session_id] = session
+    return session
+
+def get_session(session_id):
+    return active_sessions.get(session_id)
+
+def delete_session(session_id):
+    if session_id in active_sessions:
+        del active_sessions[session_id]
+
+def cleanup_expired_sessions():
+    current_time = time.time()
+    expiration_time = current_app.config.get('SESSION_EXPIRATION_TIME', 24 * 60 * 60)  # Default to 24 hours
+    expired_sessions = [sid for sid, session in active_sessions.items() 
+                        if current_time - session.created_at > expiration_time]
+    for sid in expired_sessions:
+        del active_sessions[sid]

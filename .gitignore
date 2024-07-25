@@ -2,7 +2,7 @@
 /flask_session
 /cache
 *.cache
-/__pycache__
+**/__pycache__/
 .pytest_cache
 /venv
 /static/tip-qr.png

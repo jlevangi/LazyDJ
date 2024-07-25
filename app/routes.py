@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app, send_from_directory
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info
+import traceback
 from app.admin import check_if_admin
 import spotipy
 from spotipy.exceptions import SpotifyException
@@ -25,7 +26,8 @@ def debug_status():
 
 @bp.route('/')
 def index():
-    return render_template('index.html', debug_mode=current_app.debug)
+    current_app.logger.info('Rendering index.html')
+    return render_template('index.html')
 
 @bp.route('/login')
 def login():
@@ -42,43 +44,49 @@ def callback():
     session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
     return redirect(url_for('routes.search'))
 
-@bp.route('/search', methods=['GET', 'POST'])
+
+@bp.route('/search')
 def search():
+    query = request.args.get('query', '').strip()
     token_info = get_token()
-    if not token_info:
-        return redirect(url_for('routes.index'))
-
-    query = request.args.get('query')
-    admin_mode = check_if_admin()
     
-    logger.debug(f"Search route accessed. Admin mode: {admin_mode}")
+    if not token_info:
+        return redirect(url_for('routes.login'))
 
-    tracks = []
-    if query:
+    # If it's not an AJAX request, render the full page
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        qr_code_available = qr_code_exists()  # Add this line
+        return render_template('search.html', tracks=[], query=query, qr_code_available=qr_code_available)
+
+    try:
         sp = spotipy.Spotify(auth=token_info['access_token'])
-        results = sp.search(q=query, type='track', limit=10, fields='tracks.items(name,artists(name),id,uri,album(images))')
+        results = sp.search(q=query, type='track', limit=10)
         tracks = results['tracks']['items']
 
-    track_info = []
-    for track in tracks:
-        track_data = {
-            'name': track['name'],
-            'artists': ', '.join([artist['name'] for artist in track['artists']]),
-            'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
-            'uri': track['uri'],
-            'id': track['id']
-        }
-        track_info.append(track_data)
-        logger.debug(f"Search result: {format_track_info(track)}")
+        track_info = []
+        for track in tracks:
+            track_data = {
+                'name': track['name'],
+                'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                'uri': track['uri'],
+                'id': track['id']
+            }
+            track_info.append(track_data)
 
-    qr_code_available = qr_code_exists()
-    
-    return render_template('search.html', 
-                           token=token_info['access_token'], 
-                           tracks=track_info, 
-                           tip_qr_code_path=current_app.config['TIP_QR_CODE_PATH'],
-                           qr_code_available=qr_code_available,
-                           admin_mode=admin_mode)
+        return jsonify({"tracks": track_info})
+    except SpotifyException as e:
+        error_message = f"Spotify API error: {str(e)}"
+        print(error_message)
+        print(traceback.format_exc())
+        return jsonify({"error": error_message}), 500
+    except Exception as e:
+        error_message = f"Unexpected error: {str(e)}"
+        print(error_message)
+        print(traceback.format_exc())
+        return jsonify({"error": error_message}), 500
+
+
 
 @bp.route('/queue', methods=['POST'])
 def queue():
@@ -171,7 +179,7 @@ def play_next():
 def current_queue():
     token_info = get_token()
     if not token_info:
-        return redirect(url_for('routes.index'))
+        return jsonify({"error": "Not authenticated"}), 401
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
     
@@ -192,10 +200,9 @@ def current_queue():
             else:
                 radio_queue.append(track_info)
 
-        if current_app.debug:
-            logger.debug(f"Current track: {current_track['item']['name'] if current_track and current_track['is_playing'] else 'None'}")
-            logger.debug("User queue: " + ', '.join([f"{t['name']} by {t['artists']}" for t in user_queue]))
-            logger.debug("Radio queue (first 5): " + ', '.join([f"{t['name']} by {t['artists']}" for t in radio_queue[:5]]))
+        current_app.logger.debug(f"Current track: {current_track}")
+        current_app.logger.debug(f"User queue: {user_queue}")
+        current_app.logger.debug(f"Radio queue: {radio_queue}")
 
         return jsonify({
             'current_track': {
@@ -205,15 +212,9 @@ def current_queue():
             'user_queue': user_queue,
             'radio_queue': radio_queue
         })
-    except spotipy.exceptions.SpotifyException as e:
-        logger.error(f"Spotify API error in current_queue: {str(e)}")
-        if e.http_status == 401:
-            token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
-            session['token_info'] = token_info
-            session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
-            return redirect(url_for('routes.current_queue'))
-        else:
-            return jsonify({"status": "error", "type": "error", "message": "An error occurred. Please try again."})
+    except Exception as e:
+        current_app.logger.error(f"Error fetching queue: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @bp.route('/recommendations', methods=['GET'])
 def recommendations():
@@ -244,3 +245,15 @@ def recommendations():
 @bp.route('/static/<path:path>')
 def send_static(path):
     return send_from_directory('static', path)
+
+@bp.route('/create_session', methods=['GET', 'POST'])
+def create_session():
+    if request.method == 'POST':
+        token_info = get_token()
+        if not token_info:
+            return redirect(url_for('routes.login'))
+        
+        new_session = create_session(token_info['access_token'])
+        return redirect(url_for('sessions.join_session', session_id=new_session.session_id))
+    
+    return render_template('create_session.html')

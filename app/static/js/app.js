@@ -1,3 +1,11 @@
+let SESSION_ID;
+
+function initializeSession() {
+    // This is just an example. You might get this from the server or generate it client-side
+    SESSION_ID = generateUniqueId(); // You'd need to implement this function
+    console.log('Session initialized with ID:', SESSION_ID);
+}
+
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/static/service-worker.js')
@@ -137,19 +145,37 @@ function playTrackNext(track_uri) {
 }
 
 function fetchQueue() {
-    debugLog('Fetching current queue');
+    console.log('Fetching current queue');
+    if (!document.getElementById('queueContainer')) {
+        console.error('Queue container not found. Delaying fetch.');
+        setTimeout(fetchQueue, 1000); // Retry after 1 second
+        return;
+    }
+
     fetch('/current_queue')
-    .then(response => response.json())
-    .then(data => {
-        debugLog('Current track:', data.current_track ? `${data.current_track.name} by ${data.current_track.artists}` : 'None');
-        debugLog('User queue:', data.user_queue.map(t => `${t.name} by ${t.artists}`).join(', '));
-        debugLog('Radio queue (first 5):', data.radio_queue.slice(0, 5).map(t => `${t.name} by ${t.artists}`).join(', '));
-        
-        userQueue = data.user_queue;
-        radioQueue = data.radio_queue;
-        updateQueueDisplay(data.current_track);
-    })
-    .catch(error => console.error('Error fetching queue:', error));
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Parsed queue data:', data);
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            if (!data.current_track && !data.user_queue && !data.radio_queue) {
+                console.warn('Unexpected data structure:', data);
+                data = { current_track: null, user_queue: [], radio_queue: [] };
+            }
+            console.log('Calling updateQueueDisplay with:', JSON.stringify(data));
+            updateQueueDisplay(data);  // Pass the entire data object
+        })
+        .catch(error => {
+            console.error('Error in fetchQueue:', error);
+            showNotification('Error fetching queue: ' + error.message, 'error');
+        });
 }
 
 function updateNowPlayingBar(currentTrack) {
@@ -196,56 +222,115 @@ function updateQueueList(container) {
     }
 }
 
-function updateQueueDisplay(currentTrack) {
-    debugLog('Updating queue display');
-    
-    if (isMobile()) {
-        updateNowPlayingBar(currentTrack);
-        const queueList = document.querySelector('.queue-list');
-        if (queueList) {
-            queueList.innerHTML = ''; // Clear existing content
-            updateQueueList(queueList);
-        }
-    } else {
-        const queueContainer = document.querySelector('.queue-container');
-        queueContainer.innerHTML = `<h2>Now Playing</h2>`;
-        if (currentTrack) {
+function updateQueueDisplay(data) {
+    console.log('Entering updateQueueDisplay');
+    console.log('Queue data:', JSON.stringify(data));
+
+    const queueContainer = document.getElementById('queueContainer');
+    if (!queueContainer) {
+        console.error('Queue container not found in the DOM');
+        showNotification('Error updating queue display: Queue container not found', 'error');
+        return;
+    }
+
+    try {
+        queueContainer.innerHTML = '<h2>Now Playing</h2>';
+        
+        if (data.current_track) {
             queueContainer.innerHTML += `
                 <div class="queue-item current-track">
-                    ${currentTrack.name} by ${currentTrack.artists}
+                    ${escapeHtml(data.current_track.name)} by ${escapeHtml(data.current_track.artists)}
                 </div>`;
+            console.log('Added current track to display');
         }
-        updateQueueList(queueContainer);
+
+        if (Array.isArray(data.user_queue) && data.user_queue.length > 0) {
+            queueContainer.innerHTML += '<h3>User Queue</h3>';
+            data.user_queue.forEach((track, index) => {
+                queueContainer.innerHTML += `
+                    <div class="queue-item">
+                        ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
+                    </div>`;
+                console.log(`Added user queue item ${index + 1} to display`);
+            });
+        }
+
+        if (Array.isArray(data.radio_queue) && data.radio_queue.length > 0) {
+            queueContainer.innerHTML += '<h3>Radio Queue</h3>';
+            data.radio_queue.forEach((track, index) => {
+                queueContainer.innerHTML += `
+                    <div class="queue-item">
+                        ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
+                    </div>`;
+                console.log(`Added radio queue item ${index + 1} to display`);
+            });
+        }
+
+        // Handle the case where a single queue is passed
+        if (Array.isArray(data) && data.length > 0) {
+            queueContainer.innerHTML += '<h3>Queue</h3>';
+            data.forEach((track, index) => {
+                queueContainer.innerHTML += `
+                    <div class="queue-item">
+                        ${index + 1}. ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
+                    </div>`;
+            });
+        }
+
+        if (queueContainer.innerHTML === '<h2>Now Playing</h2>') {
+            queueContainer.innerHTML += '<p>No tracks in queue</p>';
+            console.log('Added "No tracks in queue" message');
+        }
+
+        console.log('Finished updating queue display');
+    } catch (error) {
+        console.error('Error in updateQueueDisplay:', error);
+        showNotification('Error updating queue display: ' + error.message, 'error');
     }
 }
 
 // Recommendations and search
 function fetchRecommendations(query) {
     debugLog('Fetching recommendations for query:', query);
-    fetch(`/recommendations?query=${encodeURIComponent(query)}`)
+    const resultsContainer = document.querySelector('.results');
+
+    if (!query || query.trim().length < 3) {
+        resultsContainer.innerHTML = '';
+        return;
+    }
+    
+    fetch(`/recommendations?query=${encodeURIComponent(query.trim())}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
     .then(response => response.json())
     .then(data => {
-        debugLog('Recommendations data:', data);
-        const resultsContainer = document.querySelector('.results');
-        resultsContainer.innerHTML = '';
-        data.slice(0, 8).forEach(track => {
-            resultsContainer.innerHTML += `
+        if (data.error) {
+            resultsContainer.innerHTML = `<p>Error: ${data.error}</p>`;
+            return;
+        }
+        if (data.length > 0) {
+            resultsContainer.innerHTML = data.map(track => `
                 <div class="result-item">
                     ${track.album_art ? `<img src="${track.album_art}" alt="${track.name} album art" class="album-art">` : ''}
                     <div class="track-info">
                         <p class="track-name" title="${track.name}">${truncateText(track.name, 40)}</p>
                         <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
                     </div>
-                    <div class="button-container">
-                        <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}')">Add to Queue</button>
-                        ${document.querySelector('.header-container').classList.contains('admin-mode') ?
-                            `<button onclick="playTrackNext('${track.uri}')" class="play-next-button">Play Next</button>` : ''}
-                    </div>
-                </div>`;
-        });
+                    <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}')">Add to Queue</button>
+                </div>
+            `).join('');
+        } else {
+            resultsContainer.innerHTML = '<p>No results found</p>';
+        }
     })
-    .catch(error => console.error('Error fetching recommendations:', error));
+    .catch(error => {
+        console.error('Error fetching recommendations:', error);
+        showNotification('Error fetching recommendations', 'error');
+    });
 }
+
 
 // Admin functions
 function checkAdminStatus() {
@@ -291,22 +376,116 @@ function isMobile() {
     return window.innerWidth <= 767;
 }
 
-// Event Listeners and Initialization
-document.addEventListener('DOMContentLoaded', () => {
-    debugLog('DOM fully loaded and parsed');
-    
-    const searchInput = document.querySelector('input[name="query"]');
-    const searchButton = document.querySelector('button[type="submit"]');
-    const iconContainer = document.querySelector('.icon-container');
-    const tipModal = document.getElementById('tipModal');
-    const tipButton = document.getElementById('tipButton');
-    const queueContainer = document.querySelector('.queue-container');
-    const clearButton = document.querySelector('.clear-button');
-
+function initializeApp(elements) {
+    initializeSession();
     initializeDebugMode();
+    checkAdminStatus();
+    updateAdminControls();
+    console.log('Initializing queue fetch');
     fetchQueue();
     setInterval(fetchQueue, 5000);
+
+    if (isMobile()) {
+        createNowPlayingBar();
+    }
+
+    // Add event listeners
+    elements.clearButton.addEventListener('click', () => {
+        elements.searchInput.value = '';
+        elements.resultsContainer.innerHTML = '';
+        debugLog('Search input cleared');
+    });
+
+    elements.searchInput.addEventListener('input', (e) => {
+        const query = e.target.value;
+        if (query.length > 2) {
+            fetchRecommendations(query);
+        } else {
+            elements.resultsContainer.innerHTML = '';
+        }
+    });
+
+    elements.iconContainer.addEventListener('click', () => {
+        if (document.querySelector('.header-container').classList.contains('admin-mode')) {
+            deactivateAdminMode();
+        }
+    });
+
+    elements.searchButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        const query = elements.searchInput.value;
+        performSearch(query);
+    });
+
+    elements.searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = elements.searchInput.value;
+            performSearch(query);
+        }
+    });
+
+    // Handle resize events
+    window.addEventListener('resize', () => {
+        if (isMobile()) {
+            createNowPlayingBar();
+        } else {
+            removeNowPlayingBar();
+        }
+    });
+}
+
+// Event Listeners and Initialization
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded and parsed');
+    
+    const criticalElements = {
+        searchInput: document.querySelector('input[name="query"]'),
+        searchButton: document.querySelector('button[type="submit"]'),
+        iconContainer: document.querySelector('.icon-container'),
+        tipModal: document.getElementById('tipModal'),
+        tipButton: document.getElementById('tipButton'),
+        queueContainer: document.querySelector('.queue-container'),
+        clearButton: document.querySelector('.clear-button'),
+        resultsContainer: document.querySelector('.results'),
+        notificationElement: document.getElementById('notification')
+    };
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value;
+        if (query.length >= 3) {
+            fetchRecommendations(query);
+        } else {
+            document.querySelector('.results').innerHTML = '';
+        }
+    });
+
+    searchButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        const query = searchInput.value;
+        performSearch(query);
+    });
+
+    const missingElements = Object.entries(criticalElements)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+    if (missingElements.length > 0) {
+        console.error('Critical elements not found:', missingElements.join(', '));
+        showNotification('Error: Some page elements are missing. Please refresh the page or contact support.', 'error');
+        return;
+    }
+
+    // If all critical elements are present, proceed with initialization
+    initializeApp(criticalElements);
+});
+
+    initializeDebugMode();
     checkAdminStatus();
+    updateAdminControls();
+    console.log('Initializing queue fetch');
+    fetchQueue();
+    setInterval(fetchQueue, 5000);
 
     // Function to create and insert Now Playing bar
     function createNowPlayingBar() {
@@ -381,30 +560,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function performSearch(query) {
-        debugLog('Performing search. Query:', query);
+function performSearch(query) {
+    debugLog('Performing search. Query:', query);
+    
+    fetch('/check_admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ 'query': query })
+    })
+    .then(response => response.json())
+    .then(data => {
+        debugLog('Admin check response:', data);
+        updateUIForAdminStatus(data.is_admin);
         
-        fetch('/check_admin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ 'query': query })
-        })
-        .then(response => response.json())
-        .then(data => {
-            debugLog('Admin check response:', data);
-            updateUIForAdminStatus(data.is_admin);
-            
-            if (query.length > 2) {
-                fetchRecommendations(query);
-            }
-        })
-        .catch(error => {
-            console.error('Error checking admin status:', error);
-            if (query.length > 2) {
-                fetchRecommendations(query);
-            }
-        });
-    }
+        if (query.length >= 3) {
+            fetchRecommendations(query);
+        }
+    })
+    .catch(error => {
+        console.error('Error checking admin status:', error);
+        if (query.length >= 3) {
+            fetchRecommendations(query);
+        }
+    });
+}
 
     searchButton.addEventListener('click', (e) => {
         e.preventDefault();
@@ -419,32 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
             performSearch(query);
         }
     });
-
-// Tip modal functionality
-if (tipButton && typeof qrCodeAvailable !== 'undefined' && qrCodeAvailable) {
-    tipButton.style.display = 'inline-block';
-    const closeButton = tipModal.querySelector('.close');
-
-    tipButton.onclick = () => {
-        tipModal.style.display = 'block';
-        setTimeout(() => tipModal.classList.add('show'), 10);
-    };
-
-    closeButton.onclick = () => {
-        tipModal.classList.remove('show');
-        setTimeout(() => tipModal.style.display = 'none', 300);
-    };
-
-    window.onclick = (event) => {
-        if (event.target == tipModal) {
-            tipModal.classList.remove('show');
-            setTimeout(() => tipModal.style.display = 'none', 300);
-        }
-    };
-} else if (tipButton) {
-    tipButton.style.display = 'none';
-}
-});
 
 // Additional utility functions
 
@@ -536,10 +689,42 @@ updateAdminControls();
 }
 
 // Call updateAdminControls when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-// ... (previous code remains the same)
 
-updateAdminControls();
+function addTrackToSessionQueue(track_uri, trackName, artistName) {
+    debugLog(`Attempting to add track to session queue: ${trackName} by ${artistName}`);
 
-// ... (rest of the code remains the same)
-});
+    fetch(`/session/${SESSION_ID}/queue`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ 
+            'track_uri': track_uri, 
+            'track_name': trackName, 
+            'artist_name': artistName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        debugLog('Server response:', data.status);
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+            fetchSessionQueue();
+        } else {
+            showNotification(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding track to session queue:', error);
+        showNotification('Error adding track to session queue', 'error');
+    });
+}
+
+function fetchSessionQueue() {
+    debugLog('Fetching session queue');
+    fetch(`/session/${SESSION_ID}/queue`)
+    .then(response => response.json())
+    .then(data => {
+        debugLog('Session queue:', data.queue.map(t => `${t.name} by ${t.artists}`).join(', '));
+        updateQueueDisplay({ user_queue: data.queue });  // Wrap the queue in an object
+    })
+    .catch(error => console.error('Error fetching session queue:', error));
+}
