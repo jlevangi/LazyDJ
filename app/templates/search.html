@@ -13,7 +13,7 @@
         var ADMIN_KEYWORD = "{{ admin_keyword }}";
         var qrCodeAvailable = JSON.parse('{{ qr_code_available|tojson }}');
     </script>
-    <script src="/static/js/app.js" defer></script>
+    <script type="module" src="/static/js/app.js"></script>
 </head>
 <body>
     <div class="header-container {% if admin_mode %}admin-mode{% endif %}">
@@ -48,7 +48,7 @@
                     </div>
                     <button onclick="addTrackToQueue('{{ track.uri }}')">Add to Queue</button>
                     {% if admin_mode %}
-                    <button onclick="playTrackNext('{{ track.uri }}')" class="play-next-button">Play Next</button>
+                    <button onclick="playTrackNext('{{ track.uri }}')" class="play-next-button">Play Now</button>
                     {% endif %}
                 </div>
                 {% endfor %}

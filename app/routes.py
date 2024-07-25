@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app, send_from_directory
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info
+from app.models import add_recent_track, Track
 import traceback
 from app.admin import check_if_admin
 import spotipy
@@ -130,50 +131,38 @@ def queue():
         else:
             return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
 
-@bp.route('/play_next', methods=['POST'])
-def play_next():
+@bp.route('/play_now', methods=['POST'])
+def play_now():
     token_info = get_token()
     if not token_info:
-        return jsonify({"status": "error", "type": "error", "message": "No token info available"}), 401
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
 
     track_uri = request.form.get('track_uri')
-    track_name = request.form.get('track_name')
-    artist_name = request.form.get('artist_name')
-    is_admin = request.form.get('is_admin') == 'true'
-    current_time = time.time()
-
     if not track_uri:
-        return jsonify({"status": "error", "type": "error", "message": "No track URI provided"}), 400
-
-    cooldown_period = 1200  # 20 minutes in seconds
-
-    if not is_admin and track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
-        if current_app.debug:
-            logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
-        return jsonify({"status": "cooldown", "message": "This track was recently played. Please try again later."}), 200
+        return jsonify({"status": "error", "message": "No track URI provided"}), 400
 
     sp = spotipy.Spotify(auth=token_info['access_token'])
     
     try:
-        # Get the currently playing track
-        current_playback = sp.current_playback()
-        if not current_playback:
-            return jsonify({"status": "error", "type": "error", "message": "No active playback found"}), 404
-
-        # Add the track to play next
-        sp.add_to_queue(track_uri, device_id=current_playback['device']['id'])
+        # Start playing the track immediately
+        sp.start_playback(uris=[track_uri])
         
-        # Skip to the next track (which will be the one we just added)
-        sp.next_track(device_id=current_playback['device']['id'])
+        # Add the track to the recent tracks
+        track_info = sp.track(track_uri)
+        add_recent_track(Track(
+            uri=track_uri,
+            name=track_info['name'],
+            artists=', '.join([artist['name'] for artist in track_info['artists']]),
+            album_art=track_info['album']['images'][0]['url'] if track_info['album']['images'] else None
+        ))
         
-        recent_tracks[track_uri] = current_time
-        return jsonify({"status": "success", "type": "success", "message": "Track set to play next"})
+        return jsonify({"status": "success", "message": "Track started playing"})
     except SpotifyException as e:
         logger.error(f"Spotify API error: {str(e)}")
         if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
-            return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
+            return jsonify({"status": "error", "message": "No active device found. Please open Spotify on a device and try again."}), 404
         else:
-            return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
+            return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
 
 @bp.route('/current_queue', methods=['GET'])
 def current_queue():
