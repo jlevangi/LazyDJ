@@ -97,9 +97,9 @@
 }
 
 @media (max-width: 768px) {
-    .login-button {
-        padding: 60px 120px; /* Doubled the padding for mobile */
-        font-size: 120px; /* Doubled the font size for mobile */
-        border-radius: 240px; /* Doubled the border radius for mobile */
+    .login-container .login-button {
+        padding: 60px 120px;
+        font-size: 120px;
+        border-radius: 240px;
     }
 }
