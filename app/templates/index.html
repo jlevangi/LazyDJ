@@ -3,21 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LazyDJ</title>
+    <title>Lazy DJ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="header-container">
         <h1><a href="{{ url_for('routes.index') }}" class="header-link">LazyDJ</a></h1>
     </div>
+
     <div class="content-container">
         <div class="login-container">
             <a href="{{ url_for('routes.login') }}" class="login-button">Login with Spotify</a>
         </div>
-        <div class="create-session-container">
-            <a href="{{ url_for('routes.create_session') }}" class="create-session-button">Create a Session</a>
-        </div>
     </div>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

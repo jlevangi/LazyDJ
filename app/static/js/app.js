@@ -4,37 +4,54 @@ import * as Search from './search.js';
 import * as Admin from './admin.js';
 import * as UI from './ui.js';
 import * as Util from './util.js';
+import * as Sessions from './sessions.js';
 
-// Service Worker Registration
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/service-worker.js')
-        .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
-        .catch(error => console.error('ServiceWorker registration failed: ', error));
-}
+let currentSessionId = null;
 
 function initializeApp() {
     console.log('Initializing app...');
     Util.initializeDebugMode();
-    Admin.checkAdminStatus();
-    Admin.updateAdminControls();
-    console.log('Initializing queue fetch');
-    Queue.fetchQueue().then(data => {
-        console.log('Queue data received:', data);
-        if (data) {
-            UI.updateQueueDisplay(data);
-        } else {
-            console.error('Received undefined data from fetchQueue');
-        }
-    }).catch(error => console.error('Error fetching queue:', error));
-    setInterval(() => Queue.fetchQueue().then(UI.updateQueueDisplay).catch(error => console.error('Error fetching queue:', error)), 5000);
+    Admin.checkAdminStatus().then(updateUIForAdminStatus);
+    setupEventListeners();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    currentSessionId = urlParams.get('session_id');
+
+    if (currentSessionId) {
+        console.log(`Initializing session: ${currentSessionId}`);
+        initializeSession(currentSessionId);
+    } else {
+        console.log('Initializing main view');
+        initializeMainView();
+    }
 
     if (Util.isMobile()) {
         UI.createNowPlayingBar();
     }
 
-    // Handle the case when the page is loaded with a search query
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialQuery = urlParams.get('query');
+    console.log('App initialization complete');
+}
+
+function initializeSession(sessionId) {
+    Sessions.joinSession(sessionId);
+    fetchAndUpdateQueue(sessionId);
+    setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
+
+    const initialQuery = new URLSearchParams(window.location.search).get('query');
+    if (initialQuery) {
+        const searchInput = document.querySelector('input[name="query"]');
+        if (searchInput) {
+            searchInput.value = initialQuery;
+            Search.performSearch(initialQuery, sessionId);
+        }
+    }
+}
+
+function initializeMainView() {
+    fetchAndUpdateQueue();
+    setInterval(fetchAndUpdateQueue, 5000);
+
+    const initialQuery = new URLSearchParams(window.location.search).get('query');
     if (initialQuery) {
         const searchInput = document.querySelector('input[name="query"]');
         if (searchInput) {
@@ -42,83 +59,127 @@ function initializeApp() {
             Search.performSearch(initialQuery);
         }
     }
+}
 
-    // Set up event listeners
-    setupEventListeners();
-    console.log('App initialization complete');
+function fetchAndUpdateQueue(sessionId = null) {
+    Queue.fetchQueue(sessionId)
+        .then(data => {
+            if (data) {
+                UI.updateQueueDisplay(data);
+                if (data.current_track) {
+                    UI.updateNowPlayingBar(data.current_track);
+                }
+            } else {
+                console.error('Received undefined data from fetchQueue');
+            }
+        })
+        .catch(error => console.error('Error fetching queue:', error));
 }
 
 function setupEventListeners() {
-    console.log('Setting up event listeners...');
     const searchInput = document.querySelector('input[name="query"]');
     const searchButton = document.querySelector('button[type="submit"]');
-    const iconContainer = document.querySelector('.icon-container');
     const clearButton = document.querySelector('.clear-button');
-
-    if (clearButton) {
-        clearButton.addEventListener('click', () => {
-            if (searchInput) {
-                searchInput.value = '';
-                document.querySelector('.results').innerHTML = '';
-                console.log('Search input cleared');
-            }
-        });
-    }
+    const newSessionButton = document.getElementById('newSessionButton');
+    const iconContainer = document.querySelector('.icon-container');
 
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value;
-            if (query.length >= 3) {
-                console.log('Fetching recommendations for:', query);
-                Search.fetchRecommendations(query);
-            } else {
-                document.querySelector('.results').innerHTML = '';
-            }
-            // Check for admin keyword on each input
-            Admin.checkAdminKeyword(query);
-        });
-    }
-
-    if (iconContainer) {
-        iconContainer.addEventListener('click', () => {
-            if (Admin.isInAdminMode()) {
-                Admin.deactivateAdminMode();
-            }
-        });
+        searchInput.addEventListener('input', handleSearchInput);
+        searchInput.addEventListener('keypress', handleSearchKeyPress);
     }
 
     if (searchButton) {
-        searchButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            const query = searchInput ? searchInput.value : '';
-            console.log('Performing search for:', query);
-            Search.performSearch(query);
-        });
+        searchButton.addEventListener('click', handleSearchSubmit);
     }
 
+    if (clearButton) {
+        clearButton.addEventListener('click', handleClearSearch);
+    }
+
+    if (newSessionButton) {
+        newSessionButton.addEventListener('click', handleNewSession);
+    }
+
+    if (iconContainer) {
+        iconContainer.addEventListener('click', handleIconClick);
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    setupTipModalListeners();
+}
+
+function handleSearchInput(e) {
+    const query = e.target.value;
+    if (query.length >= 3) {
+        console.log('Fetching recommendations for:', query);
+        Search.fetchRecommendations(query, currentSessionId);
+    } else {
+        document.querySelector('.results').innerHTML = '';
+    }
+    Admin.checkAdminKeyword(query);
+}
+
+function handleSearchKeyPress(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+    }
+}
+
+function handleSearchSubmit(e) {
+    e.preventDefault();
+    performSearch();
+}
+
+function performSearch() {
+    const query = document.querySelector('input[name="query"]').value;
+    console.log('Performing search for:', query);
+    Search.performSearch(query, currentSessionId);
+}
+
+function handleClearSearch() {
+    const searchInput = document.querySelector('input[name="query"]');
     if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const query = searchInput.value;
-                console.log('Performing search for:', query);
-                Search.performSearch(query);
-            }
-        });
+        searchInput.value = '';
+        document.querySelector('.results').innerHTML = '';
+        console.log('Search input cleared');
     }
+}
 
-    // Handle resize events
-    window.addEventListener('resize', () => {
-        if (Util.isMobile()) {
-            UI.createNowPlayingBar();
-        } else {
-            UI.removeNowPlayingBar();
-        }
-    });
+function handleNewSession() {
+    Sessions.createNewSession()
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = data.redirect_url;
+            } else {
+                UI.showNotification('Failed to create new session', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error creating new session:', error);
+            UI.showNotification('Error creating new session', 'error');
+        });
+}
 
-    // Tip modal functionality
+function handleIconClick() {
+    if (Admin.isInAdminMode()) {
+        Admin.deactivateAdminMode();
+    }
+}
+
+function handleResize() {
+    if (Util.isMobile()) {
+        UI.createNowPlayingBar();
+    } else {
+        UI.removeNowPlayingBar();
+    }
+}
+
+function setupTipModalListeners() {
     const tipModal = document.getElementById('tipModal');
     const tipButton = document.getElementById('tipButton');
+    
     if (tipButton && tipModal && typeof qrCodeAvailable !== 'undefined' && qrCodeAvailable) {
         tipButton.style.display = 'inline-block';
         const closeButton = tipModal.querySelector('.close');
@@ -128,33 +189,39 @@ function setupEventListeners() {
             setTimeout(() => tipModal.classList.add('show'), 10);
         };
 
-        closeButton.onclick = () => {
-            tipModal.classList.remove('show');
-            setTimeout(() => tipModal.style.display = 'none', 300);
-        };
+        closeButton.onclick = closeTipModal;
 
         window.onclick = (event) => {
             if (event.target == tipModal) {
-                tipModal.classList.remove('show');
-                setTimeout(() => tipModal.style.display = 'none', 300);
+                closeTipModal();
             }
         };
     } else if (tipButton) {
         tipButton.style.display = 'none';
     }
-    console.log('Event listeners setup complete');
+}
+
+function closeTipModal() {
+    const tipModal = document.getElementById('tipModal');
+    tipModal.classList.remove('show');
+    setTimeout(() => tipModal.style.display = 'none', 300);
+}
+
+function updateUIForAdminStatus(isAdmin) {
+    UI.updateUIForAdminStatus(isAdmin);
+    Admin.updateAdminControls();
 }
 
 // Initialize the app when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Expose necessary functions to the global scope for inline event handlers
-window.addTrackToQueue = Queue.addTrackToQueue;
+window.addTrackToQueue = (track_uri, track_name, artist_name) => {
+    Queue.addTrackToQueue(track_uri, track_name, artist_name, currentSessionId);
+};
 window.playTrackNow = Queue.playTrackNow;
 window.clearQueue = Queue.clearQueue;
 window.skipTrack = Queue.skipTrack;
-window.isInAdminMode = Admin.isInAdminMode;
-window.performSearch = Search.performSearch;
-window.fetchRecommendations = Search.fetchRecommendations;
+window.performSearch = performSearch;
 
 console.log('App.js loaded');

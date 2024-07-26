@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create LazyDJ Session</title>
+    <title>Create a New Session - Lazy DJ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="header-container">
-        <h1><a href="{{ url_for('routes.index') }}" class="header-link">LazyDJ</a></h1>
+        <h1><a href="{{ url_for('routes.index') }}" class="header-link">Lazy DJ</a></h1>
     </div>
+
     <div class="content-container">
         <h2>Create a New Session</h2>
-        <form action="{{ url_for('routes.create_session') }}" method="post">
-            <button type="submit" class="login-button">Create Session</button>
+        <form action="{{ url_for('routes.create_session_route') }}" method="post">
+            <button type="submit" class="create-session-button">Create Session</button>
         </form>
     </div>
 </body>

@@ -102,6 +102,14 @@ def delete_session(session_id):
     if session_id in active_sessions:
         del active_sessions[session_id]
 
+def add_track_to_session(session, track_uri, track_name, artist_name):
+    track = {
+        'uri': track_uri,
+        'name': track_name,
+        'artists': artist_name
+    }
+    session.add_to_queue(track)
+
 def cleanup_expired_sessions():
     current_time = time.time()
     expiration_time = current_app.config.get('SESSION_EXPIRATION_TIME', 24 * 60 * 60)  # Default to 24 hours

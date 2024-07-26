@@ -10,7 +10,7 @@ let lastRequestTime = 0;
 let currentRequest = null;
 const DEBOUNCE_DELAY = 300; // 300ms debounce time
 
-export function addTrackToQueue(track_uri, trackName, artistName) {
+export function addTrackToQueue(track_uri, trackName, artistName, sessionId = '') {
     console.log(`Attempting to add track to queue: ${trackName} by ${artistName}`);
 
     const currentTime = Date.now();
@@ -21,17 +21,14 @@ export function addTrackToQueue(track_uri, trackName, artistName) {
 
     lastRequestTime = currentTime;
 
-    // Clear any existing timeout
     if (addToQueueTimeout) {
         clearTimeout(addToQueueTimeout);
     }
 
-    // Cancel any ongoing request
     if (currentRequest) {
         currentRequest.abort();
     }
 
-    // Set a new timeout
     addToQueueTimeout = setTimeout(() => {
         fetch('/check_admin_status')
         .then(response => response.json())
@@ -42,7 +39,8 @@ export function addTrackToQueue(track_uri, trackName, artistName) {
             currentRequest = new AbortController();
             const signal = currentRequest.signal;
 
-            return fetch('/queue', {
+            const url = sessionId ? `/session/${sessionId}/queue` : '/queue';
+            return fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ 
@@ -59,7 +57,7 @@ export function addTrackToQueue(track_uri, trackName, artistName) {
             console.log('Server response:', data);
             if (data.status === 'success') {
                 showNotification(data.message, 'success');
-                fetchQueue();
+                fetchQueue(sessionId);
             } else if (data.status === 'cooldown') {
                 showNotification(data.message, 'info');
             } else {
@@ -106,9 +104,10 @@ export function playTrackNow(track_uri) {
     });
 }
 
-export function fetchQueue() {
+export function fetchQueue(sessionId = '') {
     console.log('Fetching current queue');
-    return fetch('/current_queue')
+    const url = sessionId ? `/session/${sessionId}/queue` : '/current_queue';
+    return fetch(url)
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

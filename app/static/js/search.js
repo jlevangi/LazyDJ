@@ -53,7 +53,7 @@ export function fetchRecommendations(query) {
     });
 }
 
-export function performSearch(query) {
+export function performSearch(query, sessionId = null) {
     console.log('Performing search. Query:', query);
     
     if (query.length < 3) {
@@ -61,7 +61,9 @@ export function performSearch(query) {
         return Promise.resolve();
     }
 
-    return fetch(`/search?query=${encodeURIComponent(query)}`, {
+    const searchUrl = sessionId ? `/session/${sessionId}/search` : '/search';
+
+    return fetch(`${searchUrl}?query=${encodeURIComponent(query)}`, {
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
         }
@@ -72,7 +74,7 @@ export function performSearch(query) {
     })
     .then(data => {
         console.log('Search results:', data);
-        handleSearchResults(data.tracks || []);
+        handleSearchResults(data, sessionId);
     })
     .catch(error => {
         console.error('Error performing search:', error);
@@ -80,7 +82,7 @@ export function performSearch(query) {
     });
 }
 
-function handleSearchResults(data) {
+function handleSearchResults(data, sessionId) {
     const resultsContainer = document.querySelector('.results');
     if (!resultsContainer) {
         console.error('Results container not found');
@@ -105,7 +107,7 @@ function handleSearchResults(data) {
                 <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
             </div>
             <div class="button-container">
-                <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}')">Add to Queue</button>
+                <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}', '${sessionId || ''}')">Add to Queue</button>
                 ${isInAdminMode() ?
                     `<button onclick="playTrackNow('${track.uri}')" class="play-now-button">Play Now</button>` : ''}
             </div>
