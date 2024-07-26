@@ -1,83 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lazy DJ - Search</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<body>
-    <div class="header-container {% if admin_mode %}admin-mode{% endif %}">
-        <div class="icon-container" id="refreshButton" style="cursor: pointer;">
-            <img src="{{ url_for('static', filename='icons/lazydjicon-512x512.png') }}" alt="Lazy DJ Icon">
-        </div>
-        <h1><a id="refreshLink" href="javascript:void(0);" class="header-link">The Lazy DJ</a></h1>
-        <button id="newSessionButton" class="new-session-button">New Session</button>
-    </div>
+{% extends "base.html" %}
 
-    <div class="content-container">
-        <div class="main-content">
-            <div class="search-bar-container">
-                <form class="search-bar" action="{{ url_for('routes.search') }}" method="get">
-                    <input type="text" name="query" placeholder="Search for a song...">
-                    <button type="submit">Search</button>
-                    <button type="button" class="clear-button">Clear</button>
-                </form>
-            </div>
-            <div class="results">
-                {% for track in tracks %}
-                <div class="result-item">
-                    {% if track.album_art %}
-                    <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
-                    {% endif %}
-                    <div class="track-info">
-                        <p class="track-name" title="{{ track.name }}">{{ track.name|truncate(40, true, "...") }}</p>
-                        <p class="track-artist" title="{{ track.artists }}">{{ track.artists|truncate(40, true, "...") }}</p>
-                    </div>
-                    <div class="button-container">
-                        <button onclick="addTrackToQueue('{{ track.uri }}', '{{ track.name }}', '{{ track.artists }}')">Add to Queue</button>
-                        {% if admin_mode %}
-                        <button onclick="playTrackNow('{{ track.uri }}')" class="play-now-button">Play Now</button>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        <div id="queueContainer" class="queue-container">
-            <h2>Now Playing</h2>
-            <div id="queue" class="queue">
-                <!-- Queue items will be dynamically inserted here -->
-            </div>
-        </div>
-    </div>
+{% block title %}Lazy DJ - Search{% endblock %}
 
-    <div id="tipModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Support The Lazy DJ</h2>
-            <p>Your song just may get bumped to the top 😉</p>
-            <div class="qr-code-container">
-                {% if qr_code_available %}
-                <img src="{{ url_for('static', filename='tip-qr.png') }}" alt="Tip QR Code" class="tip-qr-code">
-                <p>Scan this QR code to tip!</p>
-                {% else %}
-                <p>Tip QR code not available.</p>
+{% block content %}
+<div class="header-container {% if admin_mode %}admin-mode{% endif %}">
+    <div id="refreshButton" class="icon-container" style="cursor: pointer;">
+        <img src="{{ url_for('static', filename='icons/lazydjicon-512x512.png') }}" alt="Lazy DJ Icon">
+    </div>
+    <h1><a href="javascript:void(0);" id="refreshLink" class="header-link">The Lazy DJ</a></h1>
+    <button id="newSessionButton" class="new-session-button">New Session</button>
+</div>
+
+<div class="content-container">
+    <div class="main-content">
+        <div class="search-bar-container">
+            <form class="search-bar" action="{{ url_for('routes.search') }}" method="get">
+                <input type="text" name="query" placeholder="Search for a song..." value="{{ query }}">
+                <button type="submit">Search</button>
+                <button type="button" class="clear-button">Clear</button>
+            </form>
+        </div>
+        <div class="results">
+            {% for track in tracks %}
+            <div class="result-item">
+                {% if track.album_art %}
+                <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
                 {% endif %}
+                <div class="track-info">
+                    <p class="track-name" title="{{ track.name }}">{{ track.name|truncate(40, true, '...') }}</p>
+                    <p class="track-artist" title="{{ track.artists }}">{{ track.artists|truncate(40, true, '...') }}</p>
+                </div>
+                <div class="button-container">
+                    <button onclick="addTrackToQueue('{{ track.uri }}', '{{ track.name|e }}', '{{ track.artists|e }}')">Add to Queue</button>
+                    {% if admin_mode %}
+                    <button onclick="playTrackNow('{{ track.uri }}')" class="play-now-button">Play Now</button>
+                    {% endif %}
+                </div>
             </div>
+            {% endfor %}
         </div>
     </div>
+    <div id="queueContainer" class="queue-container">
+        <h2>Now Playing</h2>
+        <div id="queue" class="queue"></div>
+    </div>
+</div>
 
-    <div id="notification"></div>
+<div id="tipModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Support The Lazy DJ</h2>
+        <p>Your song just may get bumped to the top 😉</p>
+        <div class="qr-code-container">
+            {% if qr_code_available %}
+            <img src="{{ url_for('static', filename='tip-qr.png') }}" alt="Tip QR Code" class="tip-qr-code">
+            <p>Scan this QR code to tip!</p>
+            {% else %}
+            <p>Tip QR code not available.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script>
-        document.getElementById('refreshLink').addEventListener('click', function() {
-            location.reload();
-        });
-        document.getElementById('refreshButton').addEventListener('click', function() {
-            location.reload();
-        });
-    </script>
-</body>
-</html>
+<div id="notification"></div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

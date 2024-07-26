@@ -69,3 +69,27 @@
 .button-secondary:hover {
     background-color: #636363;
 }
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100vh;
+    width: 100%;
+    padding-top: 20vh; /* This will position the button roughly 20% from the top */
+}
+
+.login-button {
+    padding: 15px 30px;
+    font-size: 30px;
+    background-color: #1DB954;
+    color: white;
+    border: none;
+    border-radius: 60px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.login-button:hover {
+    background-color: #1ED760;
+}

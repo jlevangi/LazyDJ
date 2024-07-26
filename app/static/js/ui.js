@@ -39,24 +39,24 @@ export function updateUIForAdminStatus(isAdmin) {
 }
 
 export function createNowPlayingBar() {
-    if (isMobile() && !document.querySelector('.now-playing-bar')) {
+    if (isMobile()) {
+        const existingBar = document.querySelector('.now-playing-bar');
+        if (existingBar) {
+            existingBar.remove();
+        }
+
         const queueContainer = document.querySelector('.queue-container');
         if (!queueContainer) return;
 
-        queueContainer.innerHTML = ''; // Clear existing content
         const nowPlayingBar = document.createElement('div');
         nowPlayingBar.className = 'now-playing-bar';
         nowPlayingBar.innerHTML = `
             <div class="now-playing-info">
-                <span id="current-track-info"><strong>Now playing:</strong><br>No track playing</span>
+                <span id="current-track-info">No track playing</span>
             </div>
             <div class="expand-button">▲</div>
         `;
-        queueContainer.appendChild(nowPlayingBar);
-
-        const queueList = document.createElement('div');
-        queueList.className = 'queue-list';
-        queueContainer.appendChild(queueList);
+        queueContainer.prepend(nowPlayingBar);
 
         nowPlayingBar.addEventListener('click', () => {
             queueContainer.classList.toggle('expanded');
@@ -136,9 +136,9 @@ export function updateNowPlayingBar(currentTrack) {
     const currentTrackInfo = document.getElementById('current-track-info');
     if (currentTrackInfo) {
         if (currentTrack) {
-            currentTrackInfo.innerHTML = `<strong>Now playing:</strong><br>${currentTrack.name} - ${currentTrack.artists}`;
+            currentTrackInfo.textContent = `${currentTrack.name} - ${currentTrack.artists}`;
         } else {
-            currentTrackInfo.innerHTML = '<strong>Now playing:</strong><br>No track playing';
+            currentTrackInfo.textContent = 'No track playing';
         }
     }
 }
