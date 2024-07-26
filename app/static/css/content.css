@@ -1,0 +1,71 @@
+/* content.css */
+.content-container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+    flex: 1;
+    overflow: hidden;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-right: 20px;
+    overflow: hidden;
+}
+
+/* General content styles */
+.section-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #FFFFFF;
+}
+
+.content-box {
+    background-color: #282828;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.content-box-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #FFFFFF;
+}
+
+.content-box-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #B3B3B3;
+}
+
+/* Button styles */
+.button {
+    background-color: #1DB954;
+    color: #FFFFFF;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #1ED760;
+}
+
+.button-secondary {
+    background-color: #535353;
+}
+
+.button-secondary:hover {
+    background-color: #636363;
+}

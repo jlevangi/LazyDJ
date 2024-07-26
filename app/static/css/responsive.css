@@ -1,0 +1,127 @@
+/* responsive.css */
+
+@media (max-width: 768px) {
+    /* Header styles */
+    .header-container {
+        padding: 5px;
+    }
+    
+    h1 {
+        padding: 10px 50px;
+        font-size: 20px;
+    }
+
+    .new-session-button {
+        font-size: 14px;
+        padding: 8px 12px;
+        right: 10px;
+    }
+
+    /* Content layout */
+    .content-container {
+        flex-direction: column;
+        padding: 10px;
+    }
+
+    .main-content {
+        padding-right: 0;
+        margin-bottom: 20px;
+    }
+
+    .queue-container {
+        width: 100%;
+        max-height: none;
+    }
+
+    /* Search bar */
+    .search-bar {
+        flex-wrap: wrap;
+    }
+
+    .search-bar input[type="text"] {
+        flex: 1 0 100%;
+        margin-bottom: 10px;
+        border-radius: 5px;
+    }
+
+    .search-bar button[type="submit"],
+    .search-bar .clear-button {
+        flex: 1;
+        border-radius: 5px;
+        margin: 0 5px;
+    }
+
+    /* Search results */
+    .result-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .result-item .album-art {
+        margin-bottom: 10px;
+    }
+
+    .result-item .track-info {
+        margin-bottom: 10px;
+    }
+
+    .result-item .button-container {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .result-item button {
+        flex: 1;
+        margin: 0 5px;
+    }
+
+    /* Notification */
+    #notification {
+        font-size: 18px;
+        padding: 20px 30px;
+    }
+
+    /* Modal */
+    .modal-content {
+        width: 90%;
+        margin: 10% auto;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Further adjustments for very small screens */
+    .header-container h1 {
+        font-size: 18px;
+    }
+
+    .new-session-button {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    .search-bar input[type="text"] {
+        font-size: 16px;
+    }
+
+    .search-bar button {
+        font-size: 16px;
+        padding: 10px 15px;
+    }
+
+    .result-item {
+        padding: 8px;
+    }
+
+    .track-name {
+        font-size: 14px;
+    }
+
+    .track-artist {
+        font-size: 12px;
+    }
+
+    .queue-container h2 {
+        font-size: 20px;
+    }
+}

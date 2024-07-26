@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app, send_from_directory
-from app.spotify_utils import get_token, get_spotify_oauth, format_track_info
+from app.spotify_utils import get_token, get_spotify_oauth, format_track_info, get_spotify_client
 from app.models import add_recent_track, Track, create_session, get_session, add_track_to_session
 import traceback
 from app.admin import check_if_admin
@@ -9,6 +9,9 @@ import time
 import logging
 import os
 from threading import Lock
+import qrcode
+from io import BytesIO
+import base64
 
 bp = Blueprint('routes', __name__)
 logger = logging.getLogger(__name__)
@@ -242,12 +245,13 @@ def create_new_session():
         return jsonify({"error": "Not authenticated"}), 401
 
     try:
-        new_session = create_session(token_info['access_token'])
+        # Create a new session with the owner's token
+        new_session = create_session(token_info['access_token'], token_info['access_token'])
         session['current_session_id'] = new_session.session_id
         return jsonify({
             "status": "success",
             "session_id": new_session.session_id,
-            "redirect_url": url_for('routes.session_view', session_id=new_session.session_id)
+            "redirect_url": url_for('routes.session_view', session_id=new_session.session_id, _external=True, _scheme='https')
         })
     except Exception as e:
         logger.error(f"Error creating new session: {str(e)}")
@@ -263,52 +267,75 @@ def session_view(session_id):
     if not current_session:
         return render_template('error.html', message="Session not found"), 404
 
-    token_info = get_token()
-    if not token_info:
-        return redirect(url_for('routes.login'))
+    # Generate QR code for the current page
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(request.url.replace('http://', 'https://'))  # Ensure HTTPS
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = BytesIO()
+    img.save(buffered)
+    qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-    qr_code_available = qr_code_exists()
-    return render_template('search.html', session_id=session_id, qr_code_available=qr_code_available)
+    return render_template('session.html', session_id=session_id, qr_code_base64=qr_code_base64)
 
-    return render_template('session.html', session_id=session_id)
 
 @bp.route('/session/<session_id>/search')
 def session_search(session_id):
+    query = request.args.get('query', '').strip()
     current_session = get_session(session_id)
     if not current_session:
         return jsonify({"error": "Session not found"}), 404
 
-    query = request.args.get('query', '')
-    if not query:
-        return jsonify([])
-
-    token_info = get_token()
+    token_info = current_session.owner_token
     if not token_info:
-        return jsonify({"error": "Not authenticated"}), 401
+        return jsonify({"error": "Session owner not authenticated"}), 401
 
+    sp = spotipy.Spotify(auth=token_info)
     try:
-        tracks = search_tracks(query)
-        return jsonify(tracks)
+        results = sp.search(q=query, type='track', limit=10)
+        tracks = results['tracks']['items']
+
+        track_info = []
+        for track in tracks:
+            track_data = {
+                'name': track['name'],
+                'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                'uri': track['uri'],
+                'id': track['id']
+            }
+            track_info.append(track_data)
+
+        return jsonify({"tracks": track_info})
+    except SpotifyException as e:
+        logger.error(f"Spotify API error in session search: {str(e)}")
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
-        logger.error(f"Error in session search: {str(e)}")
+        logger.error(f"Unexpected error in session search: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @bp.route('/session/<session_id>/queue', methods=['POST'])
-def add_to_session_queue(session_id):
+def session_queue(session_id):
     current_session = get_session(session_id)
     if not current_session:
         return jsonify({"error": "Session not found"}), 404
 
-    data = request.json
-    track_uri = data.get('track_uri')
-    track_name = data.get('track_name')
-    artist_name = data.get('artist_name')
+    track_uri = request.form.get('track_uri')
+    track_name = request.form.get('track_name')
+    artist_name = request.form.get('artist_name')
 
     if not all([track_uri, track_name, artist_name]):
         return jsonify({"error": "Missing track information"}), 400
 
-    add_track_to_session(current_session, track_uri, track_name, artist_name)
-    return jsonify({"status": "success", "message": "Track added to session queue"})
+    try:
+        token_info = current_session.owner_token
+        sp = spotipy.Spotify(auth=token_info)
+        sp.add_to_queue(track_uri)
+        add_track_to_session(current_session, track_uri, track_name, artist_name)
+        return jsonify({"status": "success", "message": "Track added to session queue"})
+    except Exception as e:
+        logger.error(f"Error adding track to session queue: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @bp.route('/session/<session_id>/current_queue', methods=['GET'])
 def session_current_queue(session_id):
@@ -316,13 +343,11 @@ def session_current_queue(session_id):
     if not current_session:
         return jsonify({"error": "Session not found"}), 404
 
-    token_info = get_token()
+    token_info = current_session.owner_token
     if not token_info:
-        return jsonify({"error": "Not authenticated"}), 401
+        return jsonify({"error": "Session owner not authenticated"}), 401
 
-    sp = get_spotify_client()
-    if not sp:
-        return jsonify({"error": "Failed to get Spotify client"}), 500
+    sp = spotipy.Spotify(auth=token_info)
     
     try:
         queue_info = sp._get('me/player/queue')

@@ -1,0 +1,81 @@
+/* header.css */
+.header-container {
+    background-color: #1DB954;
+    color: white;
+    padding: 4px;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.header-container.admin-mode {
+    background-color: #282828;
+}
+
+.header-container.admin-mode h1 a {
+    color: red;
+}
+
+.icon-container {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.icon-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.header-container h1 {
+    margin: 0;
+    padding: 10px;
+    color: #FFFFFF;
+    font-weight: bold;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.header-link {
+    background-color: transparent;
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 25px;
+    font-size: 30px;
+    font-weight: bold;
+    padding: 10px 30px;
+    border: none;
+}
+
+.header-link:hover {
+    background-color: #1ED760;
+}
+
+.new-session-button {
+    background-color: #FFFFFF;
+    color: #1DB954;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 25px;
+    font-size: 18px;
+    padding: 10px 20px;
+    position: absolute;
+    right: 30px;
+    transition: background-color 0.3s ease;
+}
+
+.new-session-button:hover {
+    background-color: #E6E6E6;
+}

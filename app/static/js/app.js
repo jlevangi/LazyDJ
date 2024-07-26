@@ -10,59 +10,53 @@ let currentSessionId = null;
 
 function initializeApp() {
     console.log('Initializing app...');
-    Util.initializeDebugMode();
-    Admin.checkAdminStatus().then(updateUIForAdminStatus);
-    setupEventListeners();
+    Util.initializeDebugMode().then(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        currentSessionId = urlParams.get('session_id');
 
-    const urlParams = new URLSearchParams(window.location.search);
-    currentSessionId = urlParams.get('session_id');
+        if (currentSessionId) {
+            console.log(`Initializing session: ${currentSessionId}`);
+            initializeSession(currentSessionId);
+        } else {
+            console.log('Initializing main view');
+            Admin.checkAdminStatus().then(updateUIForAdminStatus);
+            initializeMainView();
+        }
 
-    if (currentSessionId) {
-        console.log(`Initializing session: ${currentSessionId}`);
-        initializeSession(currentSessionId);
-    } else {
-        console.log('Initializing main view');
-        initializeMainView();
-    }
+        setupEventListeners();
+        updateUIForMobile();
 
-    if (Util.isMobile()) {
-        UI.createNowPlayingBar();
-    }
-
-    console.log('App initialization complete');
+        console.log('App initialization complete');
+    });
 }
 
 function initializeSession(sessionId) {
-    Sessions.joinSession(sessionId);
     fetchAndUpdateQueue(sessionId);
     setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
-
-    const initialQuery = new URLSearchParams(window.location.search).get('query');
-    if (initialQuery) {
-        const searchInput = document.querySelector('input[name="query"]');
-        if (searchInput) {
-            searchInput.value = initialQuery;
-            Search.performSearch(initialQuery, sessionId);
-        }
-    }
+    loadInitialSearch(sessionId);
 }
 
 function initializeMainView() {
     fetchAndUpdateQueue();
     setInterval(fetchAndUpdateQueue, 5000);
+    loadInitialSearch();
+}
 
+function loadInitialSearch(sessionId = null) {
     const initialQuery = new URLSearchParams(window.location.search).get('query');
     if (initialQuery) {
         const searchInput = document.querySelector('input[name="query"]');
         if (searchInput) {
             searchInput.value = initialQuery;
-            Search.performSearch(initialQuery);
+            performSearch(initialQuery, sessionId);
         }
     }
 }
 
 function fetchAndUpdateQueue(sessionId = null) {
-    Queue.fetchQueue(sessionId)
+    const url = sessionId ? `/session/${sessionId}/current_queue` : '/current_queue';
+    fetch(url)
+        .then(response => response.json())
         .then(data => {
             if (data) {
                 UI.updateQueueDisplay(data);
@@ -81,6 +75,7 @@ function setupEventListeners() {
     const searchButton = document.querySelector('button[type="submit"]');
     const clearButton = document.querySelector('.clear-button');
     const newSessionButton = document.getElementById('newSessionButton');
+    const shareSessionButton = document.getElementById('shareSessionButton');
     const iconContainer = document.querySelector('.icon-container');
 
     if (searchInput) {
@@ -100,13 +95,17 @@ function setupEventListeners() {
         newSessionButton.addEventListener('click', handleNewSession);
     }
 
+    if (shareSessionButton) {
+        shareSessionButton.addEventListener('click', handleShareSession);
+    }
+
     if (iconContainer) {
         iconContainer.addEventListener('click', handleIconClick);
     }
 
     window.addEventListener('resize', handleResize);
 
-    setupTipModalListeners();
+    setupModalListeners();
 }
 
 function handleSearchInput(e) {
@@ -132,10 +131,10 @@ function handleSearchSubmit(e) {
     performSearch();
 }
 
-function performSearch() {
-    const query = document.querySelector('input[name="query"]').value;
-    console.log('Performing search for:', query);
-    Search.performSearch(query, currentSessionId);
+function performSearch(query = null, sessionId = null) {
+    const searchQuery = query || document.querySelector('input[name="query"]').value;
+    console.log('Performing search for:', searchQuery);
+    Search.performSearch(searchQuery, sessionId);
 }
 
 function handleClearSearch() {
@@ -162,6 +161,13 @@ function handleNewSession() {
         });
 }
 
+function handleShareSession() {
+    const shareModal = document.getElementById('shareModal');
+    if (shareModal) {
+        shareModal.style.display = 'block';
+    }
+}
+
 function handleIconClick() {
     if (Admin.isInAdminMode()) {
         Admin.deactivateAdminMode();
@@ -169,11 +175,20 @@ function handleIconClick() {
 }
 
 function handleResize() {
+    updateUIForMobile();
+}
+
+function updateUIForMobile() {
     if (Util.isMobile()) {
         UI.createNowPlayingBar();
     } else {
         UI.removeNowPlayingBar();
     }
+}
+
+function setupModalListeners() {
+    setupTipModalListeners();
+    setupShareModalListeners();
 }
 
 function setupTipModalListeners() {
@@ -189,11 +204,11 @@ function setupTipModalListeners() {
             setTimeout(() => tipModal.classList.add('show'), 10);
         };
 
-        closeButton.onclick = closeTipModal;
+        closeButton.onclick = () => closeTipModal(tipModal);
 
         window.onclick = (event) => {
             if (event.target == tipModal) {
-                closeTipModal();
+                closeTipModal(tipModal);
             }
         };
     } else if (tipButton) {
@@ -201,10 +216,28 @@ function setupTipModalListeners() {
     }
 }
 
-function closeTipModal() {
-    const tipModal = document.getElementById('tipModal');
-    tipModal.classList.remove('show');
-    setTimeout(() => tipModal.style.display = 'none', 300);
+function setupShareModalListeners() {
+    const shareModal = document.getElementById('shareModal');
+    if (shareModal) {
+        const closeButton = shareModal.querySelector('.close');
+
+        closeButton.onclick = () => closeModal(shareModal);
+
+        window.onclick = (event) => {
+            if (event.target == shareModal) {
+                closeModal(shareModal);
+            }
+        };
+    }
+}
+
+function closeTipModal(modal) {
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 300);
+}
+
+function closeModal(modal) {
+    modal.style.display = 'none';
 }
 
 function updateUIForAdminStatus(isAdmin) {
@@ -223,5 +256,15 @@ window.playTrackNow = Queue.playTrackNow;
 window.clearQueue = Queue.clearQueue;
 window.skipTrack = Queue.skipTrack;
 window.performSearch = performSearch;
+window.handleShareSession = handleShareSession;
+window.copySessionLink = () => {
+    const copyText = document.getElementById("sessionLink");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+    UI.showNotification("Copied the session link!", "success");
+};
+
+document.addEventListener('DOMContentLoaded', initializeApp);
 
 console.log('App.js loaded');

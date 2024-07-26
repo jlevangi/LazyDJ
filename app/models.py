@@ -65,9 +65,10 @@ def clear_expired_tracks():
         del recent_tracks[uri]
 
 class Session:
-    def __init__(self, owner_id, session_id=None):
+    def __init__(self, owner_id, owner_token, session_id=None):
         self.session_id = session_id or str(uuid.uuid4())[:8]
         self.owner_id = owner_id
+        self.owner_token = owner_token
         self.created_at = time.time()
         self.participants = set([owner_id])
         self.queue = []
@@ -90,8 +91,8 @@ class Session:
 # In-memory store for active sessions
 active_sessions = {}
 
-def create_session(owner_id):
-    session = Session(owner_id)
+def create_session(owner_id, owner_token):
+    session = Session(owner_id, owner_token)
     active_sessions[session.session_id] = session
     return session
 
