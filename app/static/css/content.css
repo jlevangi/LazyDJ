@@ -77,19 +77,29 @@
     height: 100vh;
     width: 100%;
     padding-top: 20vh; /* This will position the button roughly 20% from the top */
+    padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: border-box;
 }
 
 .login-button {
-    padding: 15px 30px;
-    font-size: 30px;
+    padding: 30px 60px;
+    font-size: 60px;
     background-color: #1DB954;
     color: white;
     border: none;
-    border-radius: 60px;
+    border-radius: 120px;
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
 
 .login-button:hover {
     background-color: #1ED760;
+}
+
+@media (max-width: 768px) {
+    .login-button {
+        padding: 60px 120px; /* Doubled the padding for mobile */
+        font-size: 120px; /* Doubled the font size for mobile */
+        border-radius: 240px; /* Doubled the border radius for mobile */
+    }
 }

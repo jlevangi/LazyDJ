@@ -64,6 +64,7 @@ export function createNowPlayingBar() {
     }
 }
 
+
 export function removeNowPlayingBar() {
     const nowPlayingBar = document.querySelector('.now-playing-bar');
     const queueList = document.querySelector('.queue-list');
@@ -134,11 +135,17 @@ export function updateQueueDisplay(data) {
 
 export function updateNowPlayingBar(currentTrack) {
     const currentTrackInfo = document.getElementById('current-track-info');
+    const expandButton = document.querySelector('.expand-button');
+    
     if (currentTrackInfo) {
-        if (currentTrack) {
+        if (currentTrack && currentTrack.name && currentTrack.artists) {
             currentTrackInfo.textContent = `${currentTrack.name} - ${currentTrack.artists}`;
         } else {
             currentTrackInfo.textContent = 'No track playing';
         }
+    }
+
+    if (expandButton) {
+        expandButton.style.display = 'block';
     }
 }
