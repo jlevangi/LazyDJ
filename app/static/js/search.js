@@ -4,7 +4,7 @@ import { truncateText, debugLog } from './util.js';
 import { addTrackToQueue, playTrackNow, fetchQueue } from './queue.js';
 import { isInAdminMode } from './admin.js';
 
-export function fetchRecommendations(query) {
+export function fetchRecommendations(query, sessionId = null, sessionToken = null) {
     console.log('Fetching recommendations for query:', query);
     const resultsContainer = document.querySelector('.results');
 
@@ -13,11 +13,18 @@ export function fetchRecommendations(query) {
         return Promise.resolve();
     }
     
-    return fetch(`/recommendations?query=${encodeURIComponent(query.trim())}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
+    const headers = {
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+    if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
+
+    const url = sessionId 
+        ? `/session/${sessionId}/recommendations?query=${encodeURIComponent(query.trim())}`
+        : `/recommendations?query=${encodeURIComponent(query.trim())}`;
+
+    return fetch(url, { headers })
     .then(response => {
         console.log('Recommendations response:', response);
         return response.json();
@@ -37,9 +44,9 @@ export function fetchRecommendations(query) {
                         <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
                     </div>
                     <div class="button-container">
-                        <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}')">Add to Queue</button>
-                        ${document.querySelector('.header-container').classList.contains('admin-mode') ?
-                            `<button onclick="playTrackNext('${track.uri}')" class="play-next-button">Play Now</button>` : ''}
+                        <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}', '${sessionId || ''}')">Add to Queue</button>
+                        ${isInAdminMode() ?
+                            `<button onclick="playTrackNow('${track.uri}')" class="play-now-button">Play Now</button>` : ''}
                     </div>
                 </div>
             `).join('');

@@ -10,7 +10,7 @@ let lastRequestTime = 0;
 let currentRequest = null;
 const DEBOUNCE_DELAY = 300; // 300ms debounce time
 
-export function addTrackToQueue(track_uri, trackName, artistName, sessionId = '') {
+export function addTrackToQueue(track_uri, trackName, artistName, sessionId = '', sessionToken = null) {
     console.log(`Attempting to add track to queue: ${trackName} by ${artistName}`);
 
     const currentTime = Date.now();
@@ -40,9 +40,16 @@ export function addTrackToQueue(track_uri, trackName, artistName, sessionId = ''
             const signal = currentRequest.signal;
 
             const url = sessionId ? `/session/${sessionId}/queue` : '/queue';
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            };
+            if (sessionToken) {
+                headers['Authorization'] = `Bearer ${sessionToken}`;
+            }
+
             return fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: headers,
                 body: new URLSearchParams({ 
                     'track_uri': track_uri, 
                     'track_name': trackName, 
@@ -56,12 +63,12 @@ export function addTrackToQueue(track_uri, trackName, artistName, sessionId = ''
         .then(data => {
             console.log('Server response:', data);
             if (data.status === 'success') {
-                showNotification(data.message, 'success');
-                fetchQueue(sessionId);
+                showNotification(data.message || 'Track added to queue!', 'success');
+                fetchQueue(sessionId, sessionToken);
             } else if (data.status === 'cooldown') {
-                showNotification(data.message, 'info');
+                showNotification(data.message || 'This track was recently played. Please try again later.', 'info');
             } else {
-                showNotification(data.message, 'error');
+                showNotification(data.message || 'Failed to add track to queue', 'error');
             }
         })
         .catch(error => {
@@ -78,11 +85,17 @@ export function addTrackToQueue(track_uri, trackName, artistName, sessionId = ''
     }, DEBOUNCE_DELAY);
 }
 
-export function playTrackNow(track_uri) {
+export function playTrackNow(track_uri, sessionToken = null) {
     console.log('Attempting to play track now:', track_uri);
+    const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    };
+    if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
     return fetch('/play_now', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: headers,
         body: new URLSearchParams({ 'track_uri': track_uri })
     })
     .then(response => {
@@ -93,9 +106,9 @@ export function playTrackNow(track_uri) {
     })
     .then(data => {
         console.log('Server response:', data);
-        showNotification(data.message, data.type || 'success');
+        showNotification(data.message || 'Track started playing', data.status === 'success' ? 'success' : 'error');
         if (data.status === 'success') {
-            fetchQueue();
+            fetchQueue(null, sessionToken);
         }
     })
     .catch(error => {
@@ -104,10 +117,14 @@ export function playTrackNow(track_uri) {
     });
 }
 
-export function fetchQueue(sessionId = '') {
+export function fetchQueue(sessionId = null, sessionToken = null) {
     console.log('Fetching current queue');
-    const url = sessionId ? `/session/${sessionId}/queue` : '/current_queue';
-    return fetch(url)
+    const url = sessionId ? `/session/${sessionId}/current_queue` : '/current_queue';
+    const headers = {};
+    if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
+    return fetch(url, { headers })
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -133,12 +150,19 @@ export function fetchQueue(sessionId = '') {
     });
 }
 
-export function clearQueue() {
+export function clearQueue(sessionToken = null) {
     if (!confirm('Are you sure you want to clear the queue?')) return;
+
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
 
     fetch('/admin_actions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({ action: 'clear_queue' })
     })
     .then(response => {
@@ -150,7 +174,7 @@ export function clearQueue() {
     .then(data => {
         if (data.status === 'success') {
             showNotification('Queue cleared successfully', 'success');
-            fetchQueue();
+            fetchQueue(null, sessionToken);
         } else {
             showNotification('Failed to clear queue: ' + (data.message || 'Unknown error'), 'error');
         }
@@ -161,10 +185,17 @@ export function clearQueue() {
     });
 }
 
-export function skipTrack() {
+export function skipTrack(sessionToken = null) {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    if (sessionToken) {
+        headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
+
     fetch('/admin_actions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({ action: 'skip_track' })
     })
     .then(response => {
@@ -176,7 +207,7 @@ export function skipTrack() {
     .then(data => {
         if (data.status === 'success') {
             showNotification('Track skipped', 'success');
-            fetchQueue();
+            fetchQueue(null, sessionToken);
         } else {
             showNotification('Failed to skip track: ' + (data.message || 'Unknown error'), 'error');
         }

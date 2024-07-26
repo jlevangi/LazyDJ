@@ -2,6 +2,10 @@ from spotipy.oauth2 import SpotifyOAuth
 from flask import current_app, session
 import time
 import spotipy
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_spotify_oauth():
     return SpotifyOAuth(
@@ -11,18 +15,41 @@ def get_spotify_oauth():
         scope=current_app.config['SPOTIFY_SCOPE']
     )
 
-def get_token():
-    token_info = session.get('token_info', None)
+def get_token(token_info=None):
     if not token_info:
+        token_info = session.get('token_info')
+    logger.debug(f"Retrieved token_info: {token_info}")
+
+    if not token_info:
+        logger.warning("No token_info found")
+        return None
+
+    # If token_info is a string, try to parse it as JSON
+    if isinstance(token_info, str):
+        try:
+            token_info = json.loads(token_info)
+            logger.info("Successfully parsed token_info from string to dictionary")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse token_info string as JSON: {e}")
+            logger.debug(f"Token info content: {token_info}")
+            return None
+    elif not isinstance(token_info, dict):
+        logger.error(f"Unexpected token_info type: {type(token_info)}")
         return None
 
     now = int(time.time())
-    is_token_expired = token_info['expires_at'] - now < 60
+    is_token_expired = token_info.get('expires_at', 0) - now < 60
 
     if is_token_expired:
+        logger.info("Token is expired, refreshing...")
         sp_oauth = get_spotify_oauth()
-        token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
-        session['token_info'] = token_info
+        try:
+            token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
+            session['token_info'] = json.dumps(token_info)
+            logger.info("Token refreshed and stored in session")
+        except Exception as e:
+            logger.error(f"Error refreshing token: {e}")
+            return None
 
     return token_info
 

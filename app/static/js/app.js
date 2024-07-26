@@ -7,6 +7,7 @@ import * as Util from './util.js';
 import * as Sessions from './sessions.js';
 
 let currentSessionId = null;
+let sessionToken = null;
 
 function initializeApp() {
     console.log('Initializing app...');
@@ -31,15 +32,35 @@ function initializeApp() {
 }
 
 function initializeSession(sessionId) {
-    fetchAndUpdateQueue(sessionId);
-    setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
-    loadInitialSearch(sessionId);
+    fetchSessionToken(sessionId)
+        .then(() => {
+            fetchAndUpdateQueue(sessionId);
+            setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
+            loadInitialSearch(sessionId);
+        })
+        .catch(error => {
+            console.error('Error initializing session:', error);
+            UI.showNotification('Error initializing session', 'error');
+        });
 }
 
 function initializeMainView() {
     fetchAndUpdateQueue();
     setInterval(fetchAndUpdateQueue, 5000);
     loadInitialSearch();
+}
+
+function fetchSessionToken(sessionId) {
+    return fetch(`/session/${sessionId}/token`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.token) {
+                sessionToken = data.token;
+                console.log('Session token fetched successfully');
+            } else {
+                throw new Error('Failed to fetch session token');
+            }
+        });
 }
 
 function loadInitialSearch(sessionId = null) {
@@ -55,7 +76,9 @@ function loadInitialSearch(sessionId = null) {
 
 function fetchAndUpdateQueue(sessionId = null) {
     const url = sessionId ? `/session/${sessionId}/current_queue` : '/current_queue';
-    fetch(url)
+    const headers = sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {};
+
+    fetch(url, { headers })
         .then(response => response.json())
         .then(data => {
             if (data) {
@@ -112,7 +135,7 @@ function handleSearchInput(e) {
     const query = e.target.value;
     if (query.length >= 3) {
         console.log('Fetching recommendations for:', query);
-        Search.fetchRecommendations(query, currentSessionId);
+        Search.fetchRecommendations(query, currentSessionId, sessionToken);
     } else {
         document.querySelector('.results').innerHTML = '';
     }
@@ -134,7 +157,7 @@ function handleSearchSubmit(e) {
 function performSearch(query = null, sessionId = null) {
     const searchQuery = query || document.querySelector('input[name="query"]').value;
     console.log('Performing search for:', searchQuery);
-    Search.performSearch(searchQuery, sessionId);
+    Search.performSearch(searchQuery, sessionId, sessionToken);
 }
 
 function handleClearSearch() {
@@ -250,11 +273,11 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Expose necessary functions to the global scope for inline event handlers
 window.addTrackToQueue = (track_uri, track_name, artist_name) => {
-    Queue.addTrackToQueue(track_uri, track_name, artist_name, currentSessionId);
+    Queue.addTrackToQueue(track_uri, track_name, artist_name, currentSessionId, sessionToken);
 };
-window.playTrackNow = Queue.playTrackNow;
-window.clearQueue = Queue.clearQueue;
-window.skipTrack = Queue.skipTrack;
+window.playTrackNow = (track_uri) => Queue.playTrackNow(track_uri, sessionToken);
+window.clearQueue = () => Queue.clearQueue(sessionToken);
+window.skipTrack = () => Queue.skipTrack(sessionToken);
 window.performSearch = performSearch;
 window.handleShareSession = handleShareSession;
 window.copySessionLink = () => {
@@ -264,7 +287,5 @@ window.copySessionLink = () => {
     document.execCommand("copy");
     UI.showNotification("Copied the session link!", "success");
 };
-
-document.addEventListener('DOMContentLoaded', initializeApp);
 
 console.log('App.js loaded');

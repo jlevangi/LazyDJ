@@ -8,10 +8,10 @@
 </head>
 <body>
     <div class="header-container {% if admin_mode %}admin-mode{% endif %}">
-        <div class="icon-container" style="cursor: pointer;">
+        <div class="icon-container" id="refreshButton" style="cursor: pointer;">
             <img src="{{ url_for('static', filename='icons/lazydjicon-512x512.png') }}" alt="Lazy DJ Icon">
         </div>
-        <h1><a href="{{ url_for('routes.index') }}" class="header-link">The Lazy DJ</a></h1>
+        <h1><a id="refreshLink" href="javascript:void(0);" class="header-link">The Lazy DJ</a></h1>
         <button id="newSessionButton" class="new-session-button">New Session</button>
     </div>
 
@@ -71,5 +71,13 @@
     <div id="notification"></div>
 
     <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        document.getElementById('refreshLink').addEventListener('click', function() {
+            location.reload();
+        });
+        document.getElementById('refreshButton').addEventListener('click', function() {
+            location.reload();
+        });
+    </script>
 </body>
 </html>

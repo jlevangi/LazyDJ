@@ -12,6 +12,7 @@ from threading import Lock
 import qrcode
 from io import BytesIO
 import base64
+import json
 
 bp = Blueprint('routes', __name__)
 logger = logging.getLogger(__name__)
@@ -45,10 +46,15 @@ def login():
 def callback():
     sp_oauth = get_spotify_oauth()
     code = request.args.get('code')
-    token_info = sp_oauth.get_access_token(code)
-    session['token_info'] = token_info
-    session['token_info']['expires_at'] = int(time.time()) + token_info['expires_in']
-    return redirect(url_for('routes.search'))
+    try:
+        token_info = sp_oauth.get_access_token(code)
+        session['token_info'] = json.dumps(token_info)
+        logger.info("Token info stored in session")
+        logger.debug(f"Token info: {json.dumps(token_info)}")
+        return redirect(url_for('routes.search'))
+    except Exception as e:
+        logger.error(f"Error in callback: {e}")
+        return jsonify({"error": "Authentication failed"}), 400
 
 
 @bp.route('/search')
@@ -171,15 +177,15 @@ def play_now():
         else:
             return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
 
-@bp.route('/current_queue', methods=['GET'])
+@bp.route('/current_queue')
 def current_queue():
     token_info = get_token()
     if not token_info:
+        logger.warning("No token info available in current_queue route")
         return jsonify({"error": "Not authenticated"}), 401
 
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    
     try:
+        sp = spotipy.Spotify(auth=token_info['access_token'])
         queue_info = sp._get('me/player/queue')
         current_track = sp.currently_playing()
 
@@ -208,9 +214,13 @@ def current_queue():
             'user_queue': user_queue,
             'radio_queue': radio_queue
         })
-    except Exception as e:
-        current_app.logger.error(f"Error fetching queue: {str(e)}")
+    except SpotifyException as e:
+        logger.error(f"Spotify API error in current_queue: {e}")
         return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in current_queue: {e}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 @bp.route('/recommendations', methods=['GET'])
 def recommendations():
@@ -242,12 +252,13 @@ def recommendations():
 def create_new_session():
     token_info = get_token()
     if not token_info:
+        logger.warning("No token info available when creating new session")
         return jsonify({"error": "Not authenticated"}), 401
 
     try:
-        # Create a new session with the owner's token
-        new_session = create_session(token_info['access_token'], token_info['access_token'])
+        new_session = create_session(json.dumps(token_info))
         session['current_session_id'] = new_session.session_id
+        logger.info(f"New session created with ID: {new_session.session_id}")
         return jsonify({
             "status": "success",
             "session_id": new_session.session_id,
@@ -255,7 +266,7 @@ def create_new_session():
         })
     except Exception as e:
         logger.error(f"Error creating new session: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Error creating new session: {str(e)}"}), 500
     
 @bp.route('/static/<path:path>')
 def send_static(path):
@@ -276,7 +287,19 @@ def session_view(session_id):
     img.save(buffered)
     qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
 
+    # Store the session token in the user's session
+    session['token_info'] = current_session.owner_token
+
     return render_template('session.html', session_id=session_id, qr_code_base64=qr_code_base64)
+
+
+@bp.route('/session/<session_id>/token')
+def get_session_token(session_id):
+    current_session = get_session(session_id)
+    if not current_session:
+        return jsonify({"error": "Session not found"}), 404
+
+    return jsonify({"token": current_session.owner_token})
 
 
 @bp.route('/session/<session_id>/search')
@@ -343,11 +366,11 @@ def session_current_queue(session_id):
     if not current_session:
         return jsonify({"error": "Session not found"}), 404
 
-    token_info = current_session.owner_token
+    token_info = current_session.get_token_info()
     if not token_info:
         return jsonify({"error": "Session owner not authenticated"}), 401
 
-    sp = spotipy.Spotify(auth=token_info)
+    sp = spotipy.Spotify(auth=token_info['access_token'])
     
     try:
         queue_info = sp._get('me/player/queue')
