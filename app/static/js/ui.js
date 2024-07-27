@@ -51,16 +51,16 @@ export function createNowPlayingBar() {
         const nowPlayingBar = document.createElement('div');
         nowPlayingBar.className = 'now-playing-bar';
         nowPlayingBar.innerHTML = `
-            <div class="now-playing-info">
-                <span id="current-track-info">No track playing</span>
+            <div class="now-playing-section">
+                <h2>Now Playing</h2>
+                <div class="current-track-info">No track playing</div>
             </div>
             <div class="expand-button">▲</div>
         `;
         queueContainer.prepend(nowPlayingBar);
 
-        nowPlayingBar.addEventListener('click', () => {
-            queueContainer.classList.toggle('expanded');
-        });
+        // Add click event listener to the entire now playing bar
+        nowPlayingBar.addEventListener('click', toggleQueueExpand);
     }
 }
 
@@ -95,21 +95,24 @@ export function updateQueueDisplay(data) {
     // Clear the queue container, but keep the now playing bar if it exists
     queueContainer.innerHTML = nowPlayingBar ? nowPlayingBar.outerHTML : '';
     
-    queueContainer.innerHTML += '<h2>Now Playing</h2>';
-    
-    if (data && data.current_track) {
-        queueContainer.innerHTML += `
-            <div class="queue-item current-track">
-                ${escapeHtml(data.current_track.name)} by ${escapeHtml(data.current_track.artists)}
-            </div>`;
-    } else {
-        queueContainer.innerHTML += '<div class="queue-item">No track currently playing</div>';
+    // Update the current track info
+    const currentTrackInfo = queueContainer.querySelector('.current-track-info');
+    if (currentTrackInfo) {
+        if (data && data.current_track) {
+            currentTrackInfo.textContent = `${data.current_track.name} by ${data.current_track.artists}`;
+        } else {
+            currentTrackInfo.textContent = 'No track playing';
+        }
     }
-
+    
+    // Add the rest of the queue
+    const queueContent = document.createElement('div');
+    queueContent.className = 'queue-content';
+    
     if (data && data.user_queue && data.user_queue.length > 0) {
-        queueContainer.innerHTML += '<h3>User Queue</h3>';
+        queueContent.innerHTML += '<h3>User Queue</h3>';
         data.user_queue.forEach(track => {
-            queueContainer.innerHTML += `
+            queueContent.innerHTML += `
                 <div class="queue-item">
                     ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
                 </div>`;
@@ -117,16 +120,16 @@ export function updateQueueDisplay(data) {
     }
 
     if (data && data.radio_queue && data.radio_queue.length > 0) {
-        queueContainer.innerHTML += '<h3>Radio Queue</h3>';
+        queueContent.innerHTML += '<h3>Radio Queue</h3>';
         data.radio_queue.slice(0, 5).forEach(track => {
-            queueContainer.innerHTML += `
+            queueContent.innerHTML += `
                 <div class="queue-item">
                     ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
                 </div>`;
         });
 
         if (data.radio_queue.length > 5) {
-            queueContainer.innerHTML += `
+            queueContent.innerHTML += `
                 <div class="queue-item more-tracks">
                     + ${data.radio_queue.length - 5} more tracks
                 </div>`;
@@ -135,7 +138,15 @@ export function updateQueueDisplay(data) {
 
     if ((!data || !data.user_queue || data.user_queue.length === 0) && 
         (!data || !data.radio_queue || data.radio_queue.length === 0)) {
-        queueContainer.innerHTML += '<p>No tracks in queue</p>';
+        queueContent.innerHTML += '<p>No tracks in queue</p>';
+    }
+
+    queueContainer.appendChild(queueContent);
+
+    // Re-attach click event listener to the now playing bar
+    const updatedNowPlayingBar = queueContainer.querySelector('.now-playing-bar');
+    if (updatedNowPlayingBar) {
+        updatedNowPlayingBar.addEventListener('click', toggleQueueExpand);
     }
 }
 
@@ -166,5 +177,18 @@ export function updateNowPlayingBar(currentTrack) {
     const queueContainer = document.querySelector('.queue-container');
     if (queueContainer) {
         queueContainer.style.display = 'block';
+    }
+}
+
+function toggleQueueExpand() {
+    const queueContainer = document.querySelector('.queue-container');
+    const expandButton = document.querySelector('.expand-button');
+    
+    if (queueContainer) {
+        queueContainer.classList.toggle('expanded');
+        
+        if (expandButton) {
+            expandButton.textContent = queueContainer.classList.contains('expanded') ? '▼' : '▲';
+        }
     }
 }
