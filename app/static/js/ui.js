@@ -134,8 +134,14 @@ export function updateQueueDisplay(data) {
 }
 
 export function updateNowPlayingBar(currentTrack) {
-    const currentTrackInfo = document.getElementById('current-track-info');
-    const expandButton = document.querySelector('.expand-button');
+    const nowPlayingBar = document.querySelector('.now-playing-bar');
+    if (!nowPlayingBar) {
+        console.error('Now playing bar not found in the DOM');
+        return;
+    }
+
+    const currentTrackInfo = nowPlayingBar.querySelector('.now-playing-info');
+    const expandButton = nowPlayingBar.querySelector('.expand-button');
     
     if (currentTrackInfo) {
         if (currentTrack && currentTrack.name && currentTrack.artists) {
@@ -147,5 +153,11 @@ export function updateNowPlayingBar(currentTrack) {
 
     if (expandButton) {
         expandButton.style.display = 'block';
+    }
+
+    // Ensure the now playing bar is visible
+    const queueContainer = document.querySelector('.queue-container');
+    if (queueContainer) {
+        queueContainer.style.display = 'block';
     }
 }

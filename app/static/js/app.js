@@ -100,6 +100,14 @@ function setupEventListeners() {
     const newSessionButton = document.getElementById('newSessionButton');
     const shareSessionButton = document.getElementById('shareSessionButton');
     const iconContainer = document.querySelector('.icon-container');
+    const headerLink = document.querySelector('.header-link');
+    
+    if (headerLink) {
+        headerLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.reload();
+        });
+    }
 
     if (searchInput) {
         searchInput.addEventListener('input', handleSearchInput);
