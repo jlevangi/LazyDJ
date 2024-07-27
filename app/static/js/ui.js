@@ -89,7 +89,13 @@ export function updateQueueDisplay(data) {
         return;
     }
 
-    queueContainer.innerHTML = '<h2>Now Playing</h2>';
+    // Preserve the now playing bar if it exists
+    const nowPlayingBar = queueContainer.querySelector('.now-playing-bar');
+    
+    // Clear the queue container, but keep the now playing bar if it exists
+    queueContainer.innerHTML = nowPlayingBar ? nowPlayingBar.outerHTML : '';
+    
+    queueContainer.innerHTML += '<h2>Now Playing</h2>';
     
     if (data && data.current_track) {
         queueContainer.innerHTML += `
@@ -136,8 +142,9 @@ export function updateQueueDisplay(data) {
 export function updateNowPlayingBar(currentTrack) {
     const nowPlayingBar = document.querySelector('.now-playing-bar');
     if (!nowPlayingBar) {
-        console.error('Now playing bar not found in the DOM');
-        return;
+        // If the now playing bar doesn't exist, create it
+        createNowPlayingBar();
+        return updateNowPlayingBar(currentTrack); // Recursive call to update the newly created bar
     }
 
     const currentTrackInfo = nowPlayingBar.querySelector('.now-playing-info');
