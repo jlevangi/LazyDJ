@@ -10,14 +10,10 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Consolidated responsive styles */
+/* Mobile-specific styles */
 @media (max-width: 768px) {
-    /* Header styles */
     .header-container {
         padding: 5px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
     }
 
     .icon-container {
@@ -29,21 +25,12 @@ body {
     h1 {
         padding: 10px 50px;
         font-size: 20px;
-        flex-grow: 1;
-        text-align: center;
-    }
-
-    .new-session-button {
-        font-size: 14px;
-        padding: 8px 12px;
-        right: 10px;
     }
 
     .tip-button {
         display: none !important;
     }
 
-    /* Content layout */
     .content-container {
         flex-direction: column;
         padding: 10px;
@@ -55,7 +42,7 @@ body {
         margin-bottom: 20px;
     }
 
-    /* Now playing bar */
+    /* Updated Now playing bar styles */
     .queue-container {
         order: 2;
         width: 100%;
@@ -86,7 +73,7 @@ body {
         align-items: center;
         height: 70px;
         cursor: pointer;
-        padding: 0 20px; /* Increased left padding */
+        padding: 0 20px;
         color: white;
     }
 
@@ -95,14 +82,14 @@ body {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        padding-top: 15px; /* Added padding to lower the text */
+        padding-top: 15px;
     }
 
     .expand-button {
         font-size: 24px;
         padding: 10px;
         transition: transform 0.3s ease-in-out;
-        padding-top: 15px; /* Added padding to align with the text */
+        padding-top: 15px;
     }
 
     .queue-container.expanded .expand-button {
@@ -113,13 +100,12 @@ body {
         display: none;
     }
 
-    /* Hide radio queue when not expanded */
     .queue-container:not(.expanded) h3,
     .queue-container:not(.expanded) .queue-item:not(.current-track) {
         display: none;
     }
 
-    /* Search bar and results */
+    /* Updated Search bar and results styles */
     .search-bar {
         flex-wrap: wrap;
     }
@@ -138,34 +124,38 @@ body {
     }
 
     .result-item {
-        flex-direction: column;
-        align-items: flex-start;
+        display: flex;
+        align-items: center;
+        padding: 10px;
     }
 
     .result-item .album-art {
-        margin-bottom: 10px;
+        width: 50px;
+        height: 50px;
+        margin-right: 10px;
     }
 
     .result-item .track-info {
-        margin-bottom: 10px;
+        flex-grow: 1;
+        margin-right: 10px;
     }
 
     .result-item .button-container {
         display: flex;
-        width: 100%;
-        justify-content: space-between;
+        flex-direction: column;
     }
 
     .result-item button {
-        flex: 1;
-        margin: 0 5px;
+        padding: 8px 12px;
+        font-size: 14px;
+        white-space: nowrap;
     }
 
     .results {
         padding-bottom: 90px;
     }
 
-    /* Notification and Modal */
+    /* Other mobile-specific styles */
     #notification {
         font-size: 18px;
         padding: 20px 30px;
@@ -190,7 +180,6 @@ body {
         background-color: transparent;
     }
 }
-
 @media (max-width: 480px) {
     .header-container h1 {
         font-size: 18px;
