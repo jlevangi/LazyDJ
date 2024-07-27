@@ -12,41 +12,12 @@ body {
 
 /* Mobile-specific styles */
 @media (max-width: 768px) {
-    .header-container {
-        padding: 5px;
-    }
-
-    .icon-container {
-        width: 40px;
-        height: 40px;
-        left: 5px;
-    }
-
-    h1 {
-        padding: 10px 50px;
-        font-size: 20px;
-    }
-
-    .tip-button {
-        display: none !important;
-    }
-
-    .content-container {
-        flex-direction: column;
-        padding: 10px;
-        padding-bottom: calc(70px + env(safe-area-inset-bottom));
-    }
-
-    .main-content {
-        padding-right: 0;
-        margin-bottom: 20px;
-    }
+    /* ... (previous styles remain the same) ... */
 
     /* Now playing bar styles */
     .queue-container {
         order: 2;
         width: 100%;
-        height: auto;
         position: fixed;
         bottom: 0;
         left: 0;
@@ -54,7 +25,7 @@ body {
         border-radius: 20px 20px 0 0;
         padding: 0;
         background-color: #1DB954;
-        transition: max-height 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+        transition: all 0.3s ease-in-out;
         z-index: 1000;
         overflow: hidden;
         max-height: 70px;
@@ -62,7 +33,6 @@ body {
 
     .queue-container.expanded {
         max-height: 50vh;
-        overflow-y: auto;
         background-color: #282828;
     }
 
@@ -109,11 +79,16 @@ body {
 
     .queue-content {
         padding: 10px 20px;
-        display: none;
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease-in-out;
     }
 
     .queue-container.expanded .queue-content {
-        display: block;
+        opacity: 1;
+        max-height: calc(50vh - 70px);
+        overflow-y: auto;
     }
 
     .queue-item {

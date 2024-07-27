@@ -148,6 +148,12 @@ export function updateQueueDisplay(data) {
     if (updatedNowPlayingBar) {
         updatedNowPlayingBar.addEventListener('click', toggleQueueExpand);
     }
+
+    // Ensure the expand button shows the correct arrow
+    const expandButton = queueContainer.querySelector('.expand-button');
+    if (expandButton) {
+        expandButton.textContent = queueContainer.classList.contains('expanded') ? '▼' : '▲';
+    }
 }
 
 export function updateNowPlayingBar(currentTrack) {
