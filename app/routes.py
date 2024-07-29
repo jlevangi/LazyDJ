@@ -308,11 +308,11 @@ def send_static(path):
 def session_view(session_id):
     current_session = get_session(session_id)
     if not current_session:
-        return render_template('error.html', message="Session not found"), 404
+        return render_template('session_not_found.html'), 404
 
     # Generate QR code for the current page
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(request.url.replace('http://', 'https://'))  # Ensure HTTPS
+    qr.add_data(request.url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buffered = BytesIO()

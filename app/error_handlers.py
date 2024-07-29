@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 
 @bp.app_errorhandler(404)
 def not_found_error(error):
+    if request.path.startswith('/session/'):
+        # This is already handled in the routes, so we don't need to do anything here
+        return error
     logger.error(f'Not Found: {error}')
     return jsonify({"error": "Not Found"}), 404
 
