@@ -188,13 +188,8 @@ export function updateNowPlayingBar(currentTrack) {
 
 function toggleQueueExpand() {
     const queueContainer = document.querySelector('.queue-container');
-    const expandButton = document.querySelector('.expand-button');
     
     if (queueContainer) {
         queueContainer.classList.toggle('expanded');
-        
-        if (expandButton) {
-            expandButton.textContent = queueContainer.classList.contains('expanded') ? '▼' : '▲';
-        }
     }
 }
