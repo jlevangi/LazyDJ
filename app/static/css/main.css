@@ -48,38 +48,41 @@ body {
 
     /* Search bar and results styles */
     .search-bar {
+        display: flex;
         flex-wrap: wrap;
-        border-radius: 5px;
-        overflow: hidden; /* This ensures child elements don't overflow the rounded corners */
+        gap: 10px;
     }
 
     .search-bar input[type="text"] {
-        flex: 1 0 100%;
-        margin-bottom: 10px;
+        width: 100%;
+        padding: 18px;
         border-radius: 5px;
+        font-size: 20px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
     }
 
-    .search-bar button[type="submit"],
-    .search-bar .clear-button {
+    .search-bar button {
         flex: 1;
+        padding: 10px;
+        border: none;
         border-radius: 5px;
-        margin: 0 5px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 5px;
+
     }
 
-    .search-bar button:first-of-type {
-        margin-left: 0;
-        border-top-left-radius: 5px;
-        border-bottom-left-radius: 5px;
+    .search-bar button[type="submit"] {
+        background-color: #1DB954;
+        color: white;
+        border-radius: 5px;
     }
 
-    .search-bar button:last-of-type {
-        margin-right: 0;
-        border-top-right-radius: 5px;
-        border-bottom-right-radius: 5px;
-    }
-
-    /* Ensure bottom corners of input are rounded */
-    .search-bar input[type="text"] {
+    .search-bar .clear-button {
+        background-color: #e74c3c;
+        color: white;
         border-radius: 5px;
     }
     
