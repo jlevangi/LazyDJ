@@ -120,7 +120,7 @@ export function updateQueueDisplay(data) {
     queueContent.className = 'queue-content';
     
     if (data && data.user_queue && data.user_queue.length > 0) {
-        queueContent.innerHTML += '<h3>User Queue</h3>';
+        queueContent.innerHTML += '<h3>In the Queue</h3>';
         data.user_queue.forEach(track => {
             queueContent.innerHTML += `
                 <div class="queue-item">
@@ -130,7 +130,7 @@ export function updateQueueDisplay(data) {
     }
 
     if (data && data.radio_queue && data.radio_queue.length > 0) {
-        queueContent.innerHTML += '<h3>Radio Queue</h3>';
+        queueContent.innerHTML += '<h3>On Deck</h3>';
         data.radio_queue.slice(0, 5).forEach(track => {
             queueContent.innerHTML += `
                 <div class="queue-item">
