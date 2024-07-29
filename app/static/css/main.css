@@ -137,7 +137,7 @@ body {
     }
 
     .queue-container.expanded {
-        max-height: 50vh;
+        max-height: 70vh;
         background-color: #282828;
     }
 
@@ -174,9 +174,16 @@ body {
     }
 
     .expand-button {
-        font-size: 24px;
-        padding: 10px;
-        transition: transform 0.3s ease-in-out;
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 12px solid #ffffff;
+        transition: transform 0.3s ease;
+    }
+
+    .expand-button.expanded {
+        transform: rotate(180deg);
     }
 
     .queue-container.expanded .expand-button {

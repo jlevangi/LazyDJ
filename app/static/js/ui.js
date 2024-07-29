@@ -55,15 +55,17 @@ export function createNowPlayingBar() {
                 <h2>Now Playing</h2>
                 <div class="current-track-info">No track playing</div>
             </div>
-            <div class="expand-button">▲</div>
+            <div class="expand-button"></div>
         `;
         queueContainer.prepend(nowPlayingBar);
 
         // Add click event listener to the entire now playing bar
         nowPlayingBar.addEventListener('click', toggleQueueExpand);
+
+        // Set initial arrow direction
+        updateExpandButtonArrow(queueContainer);
     }
 }
-
 
 export function removeNowPlayingBar() {
     const nowPlayingBar = document.querySelector('.now-playing-bar');
@@ -92,8 +94,16 @@ export function updateQueueDisplay(data) {
     // Preserve the now playing bar if it exists
     const nowPlayingBar = queueContainer.querySelector('.now-playing-bar');
     
+    // Store the expanded state before clearing the container
+    const wasExpanded = queueContainer.classList.contains('expanded');
+    
     // Clear the queue container, but keep the now playing bar if it exists
     queueContainer.innerHTML = nowPlayingBar ? nowPlayingBar.outerHTML : '';
+    
+    // Restore the expanded state
+    if (wasExpanded) {
+        queueContainer.classList.add('expanded');
+    }
     
     // Update the current track info
     const currentTrackInfo = queueContainer.querySelector('.current-track-info');
@@ -149,11 +159,8 @@ export function updateQueueDisplay(data) {
         updatedNowPlayingBar.addEventListener('click', toggleQueueExpand);
     }
 
-    // Ensure the expand button shows the correct arrow
-    const expandButton = queueContainer.querySelector('.expand-button');
-    if (expandButton) {
-        expandButton.textContent = queueContainer.classList.contains('expanded') ? '▼' : '▲';
-    }
+    // Update the expand button arrow
+    updateExpandButtonArrow(queueContainer);
 }
 
 export function updateNowPlayingBar(currentTrack) {
@@ -164,8 +171,7 @@ export function updateNowPlayingBar(currentTrack) {
         return updateNowPlayingBar(currentTrack); // Recursive call to update the newly created bar
     }
 
-    const currentTrackInfo = nowPlayingBar.querySelector('.now-playing-info');
-    const expandButton = nowPlayingBar.querySelector('.expand-button');
+    const currentTrackInfo = nowPlayingBar.querySelector('.current-track-info');
     
     if (currentTrackInfo) {
         if (currentTrack && currentTrack.name && currentTrack.artists) {
@@ -175,14 +181,11 @@ export function updateNowPlayingBar(currentTrack) {
         }
     }
 
-    if (expandButton) {
-        expandButton.style.display = 'block';
-    }
-
     // Ensure the now playing bar is visible
     const queueContainer = document.querySelector('.queue-container');
     if (queueContainer) {
         queueContainer.style.display = 'block';
+        updateExpandButtonArrow(queueContainer);
     }
 }
 
@@ -191,5 +194,17 @@ function toggleQueueExpand() {
     
     if (queueContainer) {
         queueContainer.classList.toggle('expanded');
+        updateExpandButtonArrow(queueContainer);
+    }
+}
+
+function updateExpandButtonArrow(queueContainer) {
+    const expandButton = queueContainer.querySelector('.expand-button');
+    if (expandButton) {
+        if (queueContainer.classList.contains('expanded')) {
+            expandButton.classList.add('expanded');
+        } else {
+            expandButton.classList.remove('expanded');
+        }
     }
 }
