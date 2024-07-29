@@ -35,11 +35,15 @@ body {
         flex-direction: column;
         padding: 10px;
         padding-bottom: calc(70px + env(safe-area-inset-bottom));
+        overflow: hidden;
     }
 
     .main-content {
         padding-right: 0;
         margin-bottom: 20px;
+        overflow-y: auto;
+        flex: 1;
+        padding-bottom: 10vh;
     }
 
     /* Search bar and results styles */
@@ -108,7 +112,7 @@ body {
     }
 
     .results {
-        padding-bottom: 90px;
+        padding-bottom: 0px;
     }
 
     /* Updated now playing bar styles */
