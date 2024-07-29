@@ -34,3 +34,7 @@ class Config:
 
     # Session expiration time (in seconds)
     SESSION_EXPIRATION_TIME = 24 * 60 * 60  # 24 hours in seconds
+
+    PREFERRED_URL_SCHEME = 'https'
+
+    

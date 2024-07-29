@@ -101,7 +101,7 @@ function setupEventListeners() {
     const shareSessionButton = document.getElementById('shareSessionButton');
     const iconContainer = document.querySelector('.icon-container');
     const headerLink = document.querySelector('.header-link');
-    
+
     if (headerLink) {
         headerLink.addEventListener('click', function(e) {
             e.preventDefault();
@@ -178,23 +178,49 @@ function handleClearSearch() {
 }
 
 function handleNewSession() {
-    Sessions.createNewSession()
-        .then(data => {
-            if (data.status === 'success') {
-                window.location.href = data.redirect_url;
+    fetch('/create_session', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Server response:', data);
+        if (data.status === 'success' && data.session_id && data.redirect_url) {
+            console.log('Received redirect URL:', data.redirect_url);
+            let secureRedirectUrl = data.redirect_url.replace(/^http:/, 'https:');
+            console.log('Secure redirect URL:', secureRedirectUrl);
+            if (secureRedirectUrl.startsWith('https://')) {
+                window.location.href = secureRedirectUrl;
             } else {
-                UI.showNotification('Failed to create new session', 'error');
+                throw new Error('Generated URL is not HTTPS');
             }
-        })
-        .catch(error => {
-            console.error('Error creating new session:', error);
-            UI.showNotification('Error creating new session', 'error');
-        });
+        } else {
+            throw new Error(data.message || 'Failed to create new session');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating new session:', error);
+        UI.showNotification('Error creating new session: ' + error.message, 'error');
+    });
 }
 
 function handleShareSession() {
     const shareModal = document.getElementById('shareModal');
     if (shareModal) {
+        const sessionLinkElement = document.getElementById('sessionLink');
+        if (sessionLinkElement) {
+            let currentUrl = window.location.href;
+            let secureUrl = currentUrl.replace(/^http:/, 'https:');
+            console.log('Share session URL:', secureUrl);
+            sessionLinkElement.value = secureUrl;
+        }
         shareModal.style.display = 'block';
     }
 }

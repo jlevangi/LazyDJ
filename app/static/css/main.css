@@ -12,6 +12,7 @@ body {
 
 /* Mobile-specific styles */
 @media (max-width: 768px) {
+    
     .header-container {
         padding: 5px;
     }

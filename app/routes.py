@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app, send_from_directory
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info, get_spotify_client
 from app.models import add_recent_track, Track, create_session, get_session, add_track_to_session
+from urllib.parse import urlparse, urlunparse
 import traceback
 from app.admin import check_if_admin
 import spotipy
@@ -248,25 +249,56 @@ def recommendations():
 
     return jsonify(track_info)
 
+def force_https_url(url):
+    parsed = urlparse(url)
+    return urlunparse(parsed._replace(scheme='https'))
+
 @bp.route('/create_session', methods=['POST'])
 def create_new_session():
     token_info = get_token()
     if not token_info:
         logger.warning("No token info available when creating new session")
-        return jsonify({"error": "Not authenticated"}), 401
+        return jsonify({"status": "error", "message": "Not authenticated"}), 401
 
     try:
         new_session = create_session(json.dumps(token_info))
         session['current_session_id'] = new_session.session_id
         logger.info(f"New session created with ID: {new_session.session_id}")
-        return jsonify({
+        
+        # Generate HTTPS URL
+        redirect_url = url_for('routes.session_view', 
+                               session_id=new_session.session_id, 
+                               _external=True, 
+                               _scheme='https')  # Force HTTPS here
+        
+        logger.debug(f"Initial redirect URL: {redirect_url}")
+        
+        # Ensure HTTPS
+        parsed_url = urlparse(redirect_url)
+        if parsed_url.scheme != 'https':
+            logger.warning(f"URL scheme was not HTTPS, forcing HTTPS. Original URL: {redirect_url}")
+            redirect_url = parsed_url._replace(scheme='https').geturl()
+        
+        logger.debug(f"Final redirect URL: {redirect_url}")
+        logger.debug(f"URL scheme: {urlparse(redirect_url).scheme}")
+        
+        # Double-check HTTPS
+        if not redirect_url.startswith('https://'):
+            logger.error(f"Failed to set HTTPS. Current URL: {redirect_url}")
+            redirect_url = redirect_url.replace('http://', 'https://', 1)
+            logger.debug(f"Forced HTTPS. New URL: {redirect_url}")
+        
+        response_data = {
             "status": "success",
             "session_id": new_session.session_id,
-            "redirect_url": url_for('routes.session_view', session_id=new_session.session_id, _external=True, _scheme='https')
-        })
+            "redirect_url": redirect_url
+        }
+        logger.debug(f"Response data: {response_data}")
+        
+        return jsonify(response_data)
     except Exception as e:
-        logger.error(f"Error creating new session: {str(e)}")
-        return jsonify({"error": f"Error creating new session: {str(e)}"}), 500
+        logger.error(f"Error creating new session: {str(e)}", exc_info=True)
+        return jsonify({"status": "error", "message": f"Error creating new session: {str(e)}"}), 500
     
 @bp.route('/static/<path:path>')
 def send_static(path):
