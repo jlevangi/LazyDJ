@@ -1,0 +1,100 @@
+/* search.css */
+
+/* Search bar */
+.search-bar-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.search-bar {
+    display: flex;
+    width: 100%;
+}
+
+.search-bar input[type="text"] {
+    flex-grow: 1;
+    padding: 15px;
+    font-size: 20px;
+    border-radius: 5px 0 0 5px;
+    border: none;
+}
+
+.search-bar button {
+    padding: 15px 25px;
+    font-size: 20px;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.search-bar button[type="submit"] {
+    background-color: #1DB954;
+    border-radius: 0;
+}
+
+.search-bar .clear-button {
+    background-color: #e74c3c;
+    border-radius: 0 5px 5px 0;
+}
+
+.search-bar button:hover {
+    opacity: 0.9;
+}
+
+/* Search results */
+.results {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.result-item {
+    display: flex;
+    align-items: center;
+    background-color: #282828;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.album-art {
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+    border-radius: 5px;
+}
+
+.track-info {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.track-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #FFFFFF;
+    margin: 0;
+}
+
+.track-artist {
+    font-size: 14px;
+    color: #B3B3B3;
+    margin: 0;
+}
+
+.result-item button {
+    background-color: #1DB954;
+    color: #FFFFFF;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 5px;
+}
+
+.result-item button:hover {
+    background-color: #1ED760;
+}

@@ -1,81 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search</title>
-    <link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="apple-touch-icon" sizes="120x120" href="/static/icons/apple-touch-icon-120x120.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180x180.png">
-    <script>
-        var ADMIN_KEYWORD = "{{ admin_keyword }}";
-        var qrCodeAvailable = JSON.parse('{{ qr_code_available|tojson }}');
-    </script>
-    <script src="/static/js/app.js" defer></script>
-</head>
-<body>
-    <div class="header-container {% if admin_mode %}admin-mode{% endif %}">
-        <div class="icon-container" style="cursor: pointer;">
-            <img src="/static/icons/lazydjicon-512x512.png" alt="Lazy DJ Icon">
-        </div>
-        <h1><a href="/search" class="header-link">The Lazy DJ</a></h1>
-        <button class="tip-button" id="tipButton">Accepting Tips!</button>
+{% extends "base.html" %}
+
+{% block title %}Lazy DJ - Search{% endblock %}
+
+{% block content %}
+<div class="header-container {% if admin_mode %}admin-mode{% endif %}">
+    <div id="refreshButton" class="icon-container" style="cursor: pointer;">
+        <img src="{{ url_for('static', filename='icons/lazydjicon-512x512.png') }}" alt="Lazy DJ Icon">
     </div>
-    <div class="content-container">
-        <div class="main-content">
-            <div class="search-bar-container">
-                <form action="/search" method="get" class="search-bar">
-                    <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="Search for a song to add to the queue">
-                    <button type="submit">Search</button>
-                    <button type="button" id="clearButton" class="clear-button">Clear</button>
-                </form>
-            </div>
-            <div class="results">
-                {% for track in tracks %}
-                <div class="result-item">
-                    {% if track.album_art %}
-                    <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
-                    {% endif %}
-                    <div class="track-info">
-                        <p class="track-name" title="{{ track.name }}">
-                            {{ track.name|truncate(40, true, "...") }}
-                        </p>
-                        <p class="track-artist" title="{{ track.artists }}">
-                            {{ track.artists|truncate(40, true, "...") }}
-                        </p>
-                    </div>
-                    <button onclick="addTrackToQueue('{{ track.uri }}')">Add to Queue</button>
+    <h1><a href="javascript:void(0);" id="refreshLink" class="header-link">The Lazy DJ</a></h1>
+    <button id="newSessionButton" class="new-session-button">New Session</button>
+</div>
+
+<div class="content-container">
+    <div class="main-content">
+        <div class="search-bar-container">
+            <form class="search-bar" action="{{ url_for('routes.search') }}" method="get">
+                <input type="text" name="query" placeholder="Search for a song..." value="{{ query }}">
+                <button type="submit">Search</button>
+                <button type="button" class="clear-button">Clear</button>
+            </form>
+        </div>
+        <div class="results">
+            {% for track in tracks %}
+            <div class="result-item">
+                {% if track.album_art %}
+                <img src="{{ track.album_art }}" alt="{{ track.name }} album art" class="album-art">
+                {% endif %}
+                <div class="track-info">
+                    <p class="track-name" title="{{ track.name }}">{{ track.name|truncate(40, true, '...') }}</p>
+                    <p class="track-artist" title="{{ track.artists }}">{{ track.artists|truncate(40, true, '...') }}</p>
+                </div>
+                <div class="button-container">
+                    <button onclick="addTrackToQueue('{{ track.uri }}', '{{ track.name|e }}', '{{ track.artists|e }}')">Add to Queue</button>
                     {% if admin_mode %}
-                    <button onclick="playTrackNext('{{ track.uri }}')" class="play-next-button">Play Next</button>
+                    <button onclick="playTrackNow('{{ track.uri }}')" class="play-now-button">Play Now</button>
                     {% endif %}
                 </div>
-                {% endfor %}
             </div>
-        </div>
-        <div class="queue-container">
-            <h2>Now Playing</h2>
-            <div id="queue" class="queue">
-                <!-- Queue items will be populated here -->
-            </div>
+            {% endfor %}
         </div>
     </div>
-    <div id="tipModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Support The Lazy DJ</h2>
-            <p>Your song just may get bumped to the top 😉</p>
-            <div class="qr-code-container">
-                {% if qr_code_available %}
-                    <img src="{{ tip_qr_code_path }}" alt="Tip QR Code" class="tip-qr-code">
-                    <p>Scan this QR code to tip!</p>
-                {% else %}
-                    <p>Tip QR code not available.</p>
-                {% endif %}
-            </div>
+    <div id="queueContainer" class="queue-container">
+        <h2>Now Playing</h2>
+        <div id="queue" class="queue"></div>
+    </div>
+</div>
+
+<div id="tipModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Support The Lazy DJ</h2>
+        <p>Your song just may get bumped to the top 😉</p>
+        <div class="qr-code-container">
+            {% if qr_code_available %}
+            <img src="{{ url_for('static', filename='tip-qr.png') }}" alt="Tip QR Code" class="tip-qr-code">
+            <p>Scan this QR code to tip!</p>
+            {% else %}
+            <p>Tip QR code not available.</p>
+            {% endif %}
         </div>
     </div>
-    <div id="notification"></div>
-</body>
-</html>
+</div>
+
+<div id="notification"></div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

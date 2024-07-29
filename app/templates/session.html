@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Lazy DJ - Session{% endblock %}
+
+{% block content %}
+<div class="header-container {% if admin_mode %}admin-mode{% endif %}">
+    <div class="icon-container" style="cursor: pointer;">
+        <img src="{{ url_for('static', filename='icons/lazydjicon-512x512.png') }}" alt="Lazy DJ Icon">
+    </div>
+    <h1><a href="javascript:void(0);" id="refreshLink" class="header-link">The Lazy DJ</a></h1>
+    <button id="shareSessionButton" class="new-session-button">Share Session</button>
+</div>
+
+<div class="content-container">
+    <div class="main-content">
+        <div class="search-bar-container">
+            <form class="search-bar" action="{{ url_for('routes.session_search', session_id=session_id) }}" method="get">
+                <input type="text" name="query" placeholder="Search for a song...">
+                <button type="submit">Search</button>
+                <button type="button" class="clear-button">Clear</button>
+            </form>
+        </div>
+        <div class="results">
+            <!-- Search results will be dynamically populated here -->
+        </div>
+    </div>
+    <div id="queueContainer" class="queue-container">
+        <h2>Now Playing</h2>
+        <div id="queue" class="queue"></div>
+    </div>
+</div>
+
+<div id="shareModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Share This Session</h2>
+        <p>Scan this QR code to join the session:</p>
+        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="Session QR Code" class="session-qr-code">
+        <p>Or share this link:</p>
+        <input type="text" id="sessionLink" value="{{ url_for('routes.session_view', session_id=session_id, _external=True) }}" readonly>
+        <button onclick="copySessionLink()" class="copy-link-button">Copy Link</button>
+    </div>
+</div>
+
+<div id="notification"></div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

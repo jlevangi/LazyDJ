@@ -1,545 +1,325 @@
-// Service Worker Registration
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/service-worker.js')
-        .then(registration => console.log('ServiceWorker registration successful with scope: ', registration.scope))
-        .catch(error => console.error('ServiceWorker registration failed: ', error));
-}
+// app.js
+import * as Queue from './queue.js';
+import * as Search from './search.js';
+import * as Admin from './admin.js';
+import * as UI from './ui.js';
+import * as Util from './util.js';
+import * as Sessions from './sessions.js';
 
-// Debug mode handling
-let debugMode = false;
+let currentSessionId = null;
+let sessionToken = null;
 
-function setDebugMode(isDebug) {
-    debugMode = isDebug;
-    if (debugMode) {
-        console.log('Debug mode is enabled');
-    }
-}
+function initializeApp() {
+    console.log('Initializing app...');
+    Util.initializeDebugMode().then(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        currentSessionId = urlParams.get('session_id');
 
-function debugLog(...args) {
-    if (debugMode) {
-        console.log(...args);
-    }
-}
-
-function initializeDebugMode() {
-    fetch('/debug_status')
-    .then(response => response.json())
-    .then(data => {
-        setDebugMode(data.debug_mode);
-    })
-    .catch(error => console.error('Error fetching debug status:', error));
-}
-
-// Notification handling
-function showNotification(message, type) {
-    debugLog('showNotification called with message:', message, 'and type:', type);
-    const notification = document.getElementById('notification');
-    if (!notification) {
-        console.error('Notification element not found in the DOM');
-        return;
-    }
-    notification.textContent = message;
-    notification.className = type === 'error' ? 'error' : '';
-    notification.style.display = 'block';
-    
-    notification.offsetHeight; // Force a reflow
-    
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 500);
-    }, 3000);
-}
-
-// UI helpers
-function truncateText(text, maxLength) {
-    return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
-}
-
-function updateUIForAdminStatus(isAdmin) {
-    debugLog('Updating UI for admin status:', isAdmin);
-    const header = document.querySelector('.header-container');
-    const playNextButtons = document.querySelectorAll('.play-next-button');
-    
-    if (isAdmin) {
-        header.classList.add('admin-mode');
-        playNextButtons.forEach(button => button.style.display = 'inline-block');
-    } else {
-        header.classList.remove('admin-mode');
-        playNextButtons.forEach(button => button.style.display = 'none');
-    }
-}
-
-// Queue management
-let userQueue = [];
-let radioQueue = [];
-
-function addTrackToQueue(track_uri, trackName, artistName) {
-    debugLog(`Attempting to add track to queue: ${trackName} by ${artistName}`);
-
-    fetch('/check_admin_status')
-    .then(response => response.json())
-    .then(data => {
-        debugLog('Admin check response:', data);
-        updateUIForAdminStatus(data.is_admin);
-        
-        return fetch('/queue', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ 
-                'track_uri': track_uri, 
-                'track_name': trackName, 
-                'artist_name': artistName,
-                'is_admin': data.is_admin
-            })
-        });
-    })
-    .then(response => response.json())
-    .then(data => {
-        debugLog('Server response:', data.status);
-        if (data.status === 'success') {
-            showNotification(data.message, 'success');
-            fetchQueue();
-        } else if (data.status === 'cooldown') {
-            showNotification(data.message, 'info');
+        if (currentSessionId) {
+            console.log(`Initializing session: ${currentSessionId}`);
+            initializeSession(currentSessionId);
         } else {
-            showNotification(data.message, 'error');
+            console.log('Initializing main view');
+            Admin.checkAdminStatus().then(updateUIForAdminStatus);
+            initializeMainView();
         }
-    })
-    .catch(error => {
-        console.error('Error adding track to queue:', error);
-        showNotification('Error adding track to queue', 'error');
+
+        setupEventListeners();
+        updateUIForMobile();
+
+        console.log('App initialization complete');
     });
 }
 
-function playTrackNext(track_uri) {
-    debugLog('Attempting to play track next:', track_uri);
-    fetch('/play_next', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ 'track_uri': track_uri })
-    })
-    .then(response => response.json())
-    .then(data => {
-        debugLog('Server response:', data);
-        showNotification(data.message, data.type || 'success');
-        if (data.status === 'success') {
-            fetchQueue();
-        }
-    })
-    .catch(error => {
-        console.error('Error playing track next:', error);
-        showNotification('Error playing track next', 'error');
-    });
+function initializeSession(sessionId) {
+    fetchSessionToken(sessionId)
+        .then(() => {
+            fetchAndUpdateQueue(sessionId);
+            setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
+            loadInitialSearch(sessionId);
+        })
+        .catch(error => {
+            console.error('Error initializing session:', error);
+            UI.showNotification('Error initializing session', 'error');
+        });
 }
 
-function fetchQueue() {
-    debugLog('Fetching current queue');
-    fetch('/current_queue')
-    .then(response => response.json())
-    .then(data => {
-        debugLog('Current track:', data.current_track ? `${data.current_track.name} by ${data.current_track.artists}` : 'None');
-        debugLog('User queue:', data.user_queue.map(t => `${t.name} by ${t.artists}`).join(', '));
-        debugLog('Radio queue (first 5):', data.radio_queue.slice(0, 5).map(t => `${t.name} by ${t.artists}`).join(', '));
-        
-        userQueue = data.user_queue;
-        radioQueue = data.radio_queue;
-        updateQueueDisplay(data.current_track);
-    })
-    .catch(error => console.error('Error fetching queue:', error));
+function initializeMainView() {
+    fetchAndUpdateQueue();
+    setInterval(fetchAndUpdateQueue, 5000);
+    loadInitialSearch();
 }
 
-function updateNowPlayingBar(currentTrack) {
-    const currentTrackInfo = document.getElementById('current-track-info');
-    if (currentTrackInfo) {
-        if (currentTrack) {
-            currentTrackInfo.innerHTML = `<strong>Now playing:</strong><br>${currentTrack.name} - ${currentTrack.artists}`;
-        } else {
-            currentTrackInfo.innerHTML = '<strong>Now playing:</strong><br>No track playing';
+function fetchSessionToken(sessionId) {
+    return fetch(`/session/${sessionId}/token`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.token) {
+                sessionToken = data.token;
+                console.log('Session token fetched successfully');
+            } else {
+                throw new Error('Failed to fetch session token');
+            }
+        });
+}
+
+function loadInitialSearch(sessionId = null) {
+    const initialQuery = new URLSearchParams(window.location.search).get('query');
+    if (initialQuery) {
+        const searchInput = document.querySelector('input[name="query"]');
+        if (searchInput) {
+            searchInput.value = initialQuery;
+            performSearch(initialQuery, sessionId);
         }
     }
 }
 
-function updateQueueList(container) {
-    if (userQueue.length > 0) {
-        container.innerHTML += '<h3>In Queue</h3>';
-        userQueue.forEach(track => {
-            container.innerHTML += `
-                <div class="queue-item">
-                    ${track.name} by ${track.artists}
-                </div>`;
+function fetchAndUpdateQueue(sessionId = null) {
+    const url = sessionId ? `/session/${sessionId}/current_queue` : '/current_queue';
+    const headers = sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {};
+
+    fetch(url, { headers })
+        .then(response => response.json())
+        .then(data => {
+            if (data) {
+                UI.updateQueueDisplay(data);
+                if (data.current_track) {
+                    UI.updateNowPlayingBar(data.current_track);
+                }
+            } else {
+                console.error('Received undefined data from fetchQueue');
+            }
+        })
+        .catch(error => console.error('Error fetching queue:', error));
+}
+
+function setupEventListeners() {
+    const searchInput = document.querySelector('input[name="query"]');
+    const searchButton = document.querySelector('button[type="submit"]');
+    const clearButton = document.querySelector('.clear-button');
+    const newSessionButton = document.getElementById('newSessionButton');
+    const shareSessionButton = document.getElementById('shareSessionButton');
+    const iconContainer = document.querySelector('.icon-container');
+    const headerLink = document.querySelector('.header-link');
+
+    if (headerLink) {
+        headerLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.reload();
         });
     }
 
-    if (radioQueue.length > 0) {
-        container.innerHTML += '<h3>Up Next</h3>';
-        radioQueue.slice(0, 5).forEach(track => {
-            container.innerHTML += `
-                <div class="queue-item">
-                    ${track.name} by ${track.artists}
-                </div>`;
-        });
-
-        if (radioQueue.length > 5) {
-            container.innerHTML += `
-                <div class="queue-item more-tracks">
-                    + ${radioQueue.length - 5} more tracks
-                </div>`;
-        }
+    if (searchInput) {
+        searchInput.addEventListener('input', handleSearchInput);
+        searchInput.addEventListener('keypress', handleSearchKeyPress);
     }
 
-    if (userQueue.length === 0 && radioQueue.length === 0) {
-        container.innerHTML += '<p>No tracks in queue</p>';
+    if (searchButton) {
+        searchButton.addEventListener('click', handleSearchSubmit);
     }
+
+    if (clearButton) {
+        clearButton.addEventListener('click', handleClearSearch);
+    }
+
+    if (newSessionButton) {
+        newSessionButton.addEventListener('click', handleNewSession);
+    }
+
+    if (shareSessionButton) {
+        shareSessionButton.addEventListener('click', handleShareSession);
+    }
+
+    if (iconContainer) {
+        iconContainer.addEventListener('click', handleIconClick);
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    setupModalListeners();
 }
 
-function updateQueueDisplay(currentTrack) {
-    debugLog('Updating queue display');
-    
-    if (isMobile()) {
-        updateNowPlayingBar(currentTrack);
-        const queueList = document.querySelector('.queue-list');
-        if (queueList) {
-            queueList.innerHTML = ''; // Clear existing content
-            updateQueueList(queueList);
-        }
+function handleSearchInput(e) {
+    const query = e.target.value;
+    if (query.length >= 3) {
+        console.log('Fetching recommendations for:', query);
+        Search.fetchRecommendations(query, currentSessionId, sessionToken);
     } else {
-        const queueContainer = document.querySelector('.queue-container');
-        queueContainer.innerHTML = `<h2>Now Playing</h2>`;
-        if (currentTrack) {
-            queueContainer.innerHTML += `
-                <div class="queue-item current-track">
-                    ${currentTrack.name} by ${currentTrack.artists}
-                </div>`;
-        }
-        updateQueueList(queueContainer);
+        document.querySelector('.results').innerHTML = '';
+    }
+    Admin.checkAdminKeyword(query);
+}
+
+function handleSearchKeyPress(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
     }
 }
 
-// Recommendations and search
-function fetchRecommendations(query) {
-    debugLog('Fetching recommendations for query:', query);
-    fetch(`/recommendations?query=${encodeURIComponent(query)}`)
-    .then(response => response.json())
-    .then(data => {
-        debugLog('Recommendations data:', data);
-        const resultsContainer = document.querySelector('.results');
-        resultsContainer.innerHTML = '';
-        data.slice(0, 8).forEach(track => {
-            resultsContainer.innerHTML += `
-                <div class="result-item">
-                    ${track.album_art ? `<img src="${track.album_art}" alt="${track.name} album art" class="album-art">` : ''}
-                    <div class="track-info">
-                        <p class="track-name" title="${track.name}">${truncateText(track.name, 40)}</p>
-                        <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
-                    </div>
-                    <div class="button-container">
-                        <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}')">Add to Queue</button>
-                        ${document.querySelector('.header-container').classList.contains('admin-mode') ?
-                            `<button onclick="playTrackNext('${track.uri}')" class="play-next-button">Play Next</button>` : ''}
-                    </div>
-                </div>`;
-        });
-    })
-    .catch(error => console.error('Error fetching recommendations:', error));
+function handleSearchSubmit(e) {
+    e.preventDefault();
+    performSearch();
 }
 
-// Admin functions
-function checkAdminStatus() {
-    debugLog('Checking admin status');
-    fetch('/check_admin_status')
-    .then(response => response.json())
-    .then(data => {
-        debugLog('Admin status:', data);
-        updateUIForAdminStatus(data.is_admin);
-    })
-    .catch(error => {
-        console.error('Error checking admin status:', error);
-    });
+function performSearch(query = null, sessionId = null) {
+    const searchQuery = query || document.querySelector('input[name="query"]').value;
+    console.log('Performing search for:', searchQuery);
+    Search.performSearch(searchQuery, sessionId, sessionToken);
 }
 
-function deactivateAdminMode() {
-    debugLog('Attempting to deactivate admin mode');
-    fetch('/deactivate_admin', {
+function handleClearSearch() {
+    const searchInput = document.querySelector('input[name="query"]');
+    if (searchInput) {
+        searchInput.value = '';
+        document.querySelector('.results').innerHTML = '';
+        console.log('Search input cleared');
+    }
+}
+
+function handleNewSession() {
+    fetch('/create_session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+        },
     })
     .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
         return response.json();
     })
     .then(data => {
-        debugLog('Admin deactivation response:', data);
-        if (data.status === 'success') {
-            updateUIForAdminStatus(false);
+        console.log('Server response:', data);
+        if (data.status === 'success' && data.session_id && data.redirect_url) {
+            console.log('Received redirect URL:', data.redirect_url);
+            let secureRedirectUrl = data.redirect_url.replace(/^http:/, 'https:');
+            console.log('Secure redirect URL:', secureRedirectUrl);
+            if (secureRedirectUrl.startsWith('https://')) {
+                window.location.href = secureRedirectUrl;
+            } else {
+                throw new Error('Generated URL is not HTTPS');
+            }
         } else {
-            console.error('Deactivation failed:', data.message);
-            showNotification('Failed to deactivate admin mode', 'error');
+            throw new Error(data.message || 'Failed to create new session');
         }
     })
     .catch(error => {
-        console.error('Error deactivating admin mode:', error);
-        showNotification('Error deactivating admin mode', 'error');
+        console.error('Error creating new session:', error);
+        UI.showNotification('Error creating new session: ' + error.message, 'error');
     });
 }
 
-// Mobile detection
-function isMobile() {
-    return window.innerWidth <= 767;
+function handleShareSession() {
+    const shareModal = document.getElementById('shareModal');
+    if (shareModal) {
+        const sessionLinkElement = document.getElementById('sessionLink');
+        if (sessionLinkElement) {
+            let currentUrl = window.location.href;
+            let secureUrl = currentUrl.replace(/^http:/, 'https:');
+            console.log('Share session URL:', secureUrl);
+            sessionLinkElement.value = secureUrl;
+        }
+        shareModal.style.display = 'block';
+    }
 }
 
-// Event Listeners and Initialization
-document.addEventListener('DOMContentLoaded', () => {
-    debugLog('DOM fully loaded and parsed');
-    
-    const searchInput = document.querySelector('input[name="query"]');
-    const searchButton = document.querySelector('button[type="submit"]');
-    const iconContainer = document.querySelector('.icon-container');
+function handleIconClick() {
+    if (Admin.isInAdminMode()) {
+        Admin.deactivateAdminMode();
+    }
+}
+
+function handleResize() {
+    updateUIForMobile();
+}
+
+function updateUIForMobile() {
+    if (Util.isMobile()) {
+        UI.createNowPlayingBar();
+    } else {
+        UI.removeNowPlayingBar();
+    }
+}
+
+function setupModalListeners() {
+    setupTipModalListeners();
+    setupShareModalListeners();
+}
+
+function setupTipModalListeners() {
     const tipModal = document.getElementById('tipModal');
     const tipButton = document.getElementById('tipButton');
-    const queueContainer = document.querySelector('.queue-container');
-    const clearButton = document.querySelector('.clear-button');
+    
+    if (tipButton && tipModal && typeof qrCodeAvailable !== 'undefined' && qrCodeAvailable) {
+        tipButton.style.display = 'inline-block';
+        const closeButton = tipModal.querySelector('.close');
 
-    initializeDebugMode();
-    fetchQueue();
-    setInterval(fetchQueue, 5000);
-    checkAdminStatus();
+        tipButton.onclick = () => {
+            tipModal.style.display = 'block';
+            setTimeout(() => tipModal.classList.add('show'), 10);
+        };
 
-    // Function to create and insert Now Playing bar
-    function createNowPlayingBar() {
-        if (isMobile() && !document.querySelector('.now-playing-bar')) {
-            const queueContainer = document.querySelector('.queue-container');
-            queueContainer.innerHTML = ''; // Clear existing content
-            const nowPlayingBar = document.createElement('div');
-            nowPlayingBar.className = 'now-playing-bar';
-            nowPlayingBar.innerHTML = `
-                <div class="now-playing-info">
-                    <span id="current-track-info"><strong>Now playing:</strong><br>No track playing</span>
-                </div>
-                <div class="expand-button">▲</div>
-            `;
-            queueContainer.appendChild(nowPlayingBar);
+        closeButton.onclick = () => closeTipModal(tipModal);
 
-            const queueList = document.createElement('div');
-            queueList.className = 'queue-list';
-            queueContainer.appendChild(queueList);
-
-            nowPlayingBar.addEventListener('click', () => {
-                queueContainer.classList.toggle('expanded');
-            });
-        }
-    }
-
-    clearButton.addEventListener('click', () => {
-        searchInput.value = '';
-        document.querySelector('.results').innerHTML = '';
-        debugLog('Search input cleared');
-    });
-
-    // Function to remove Now Playing bar
-    function removeNowPlayingBar() {
-        const nowPlayingBar = document.querySelector('.now-playing-bar');
-        const queueList = document.querySelector('.queue-list');
-        if (nowPlayingBar) {
-            nowPlayingBar.remove();
-        }
-        if (queueList) {
-            queueList.remove();
-        }
-        queueContainer.classList.remove('expanded');
-    }
-
-    // Initial setup
-    if (isMobile()) {
-        createNowPlayingBar();
-    }
-
-    // Handle resize events
-    window.addEventListener('resize', () => {
-        if (isMobile()) {
-            createNowPlayingBar();
-        } else {
-            removeNowPlayingBar();
-        }
-    });
-
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value;
-        if (query.length > 2) {
-            fetchRecommendations(query);
-        } else {
-            document.querySelector('.results').innerHTML = '';
-        }
-    });
-
-    iconContainer.addEventListener('click', () => {
-        if (document.querySelector('.header-container').classList.contains('admin-mode')) {
-            deactivateAdminMode();
-        }
-    });
-
-    function performSearch(query) {
-        debugLog('Performing search. Query:', query);
-        
-        fetch('/check_admin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ 'query': query })
-        })
-        .then(response => response.json())
-        .then(data => {
-            debugLog('Admin check response:', data);
-            updateUIForAdminStatus(data.is_admin);
-            
-            if (query.length > 2) {
-                fetchRecommendations(query);
+        window.onclick = (event) => {
+            if (event.target == tipModal) {
+                closeTipModal(tipModal);
             }
-        })
-        .catch(error => {
-            console.error('Error checking admin status:', error);
-            if (query.length > 2) {
-                fetchRecommendations(query);
+        };
+    } else if (tipButton) {
+        tipButton.style.display = 'none';
+    }
+}
+
+function setupShareModalListeners() {
+    const shareModal = document.getElementById('shareModal');
+    if (shareModal) {
+        const closeButton = shareModal.querySelector('.close');
+
+        closeButton.onclick = () => closeModal(shareModal);
+
+        window.onclick = (event) => {
+            if (event.target == shareModal) {
+                closeModal(shareModal);
             }
-        });
+        };
     }
-
-    searchButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        const query = searchInput.value;
-        performSearch(query);
-    });
-
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const query = searchInput.value;
-            performSearch(query);
-        }
-    });
-
-// Tip modal functionality
-if (tipButton && typeof qrCodeAvailable !== 'undefined' && qrCodeAvailable) {
-    tipButton.style.display = 'inline-block';
-    const closeButton = tipModal.querySelector('.close');
-
-    tipButton.onclick = () => {
-        tipModal.style.display = 'block';
-        setTimeout(() => tipModal.classList.add('show'), 10);
-    };
-
-    closeButton.onclick = () => {
-        tipModal.classList.remove('show');
-        setTimeout(() => tipModal.style.display = 'none', 300);
-    };
-
-    window.onclick = (event) => {
-        if (event.target == tipModal) {
-            tipModal.classList.remove('show');
-            setTimeout(() => tipModal.style.display = 'none', 300);
-        }
-    };
-} else if (tipButton) {
-    tipButton.style.display = 'none';
-}
-});
-
-// Additional utility functions
-
-function escapeHtml(unsafe) {
-return unsafe
-     .replace(/&/g, "&amp;")
-     .replace(/</g, "&lt;")
-     .replace(/>/g, "&gt;")
-     .replace(/"/g, "&quot;")
-     .replace(/'/g, "&#039;");
 }
 
-// Admin-specific functions
-function clearQueue() {
-if (!confirm('Are you sure you want to clear the queue?')) return;
-
-fetch('/admin_actions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'clear_queue' })
-})
-.then(response => response.json())
-.then(data => {
-    if (data.status === 'success') {
-        showNotification('Queue cleared successfully', 'success');
-        fetchQueue();
-    } else {
-        showNotification('Failed to clear queue', 'error');
-    }
-})
-.catch(error => {
-    console.error('Error clearing queue:', error);
-    showNotification('Error clearing queue', 'error');
-});
+function closeTipModal(modal) {
+    modal.classList.remove('show');
+    setTimeout(() => modal.style.display = 'none', 300);
 }
 
-function skipTrack() {
-fetch('/admin_actions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'skip_track' })
-})
-.then(response => response.json())
-.then(data => {
-    if (data.status === 'success') {
-        showNotification('Track skipped', 'success');
-        fetchQueue();
-    } else {
-        showNotification('Failed to skip track', 'error');
-    }
-})
-.catch(error => {
-    console.error('Error skipping track:', error);
-    showNotification('Error skipping track', 'error');
-});
+function closeModal(modal) {
+    modal.style.display = 'none';
 }
 
-// Function to update admin controls
-function updateAdminControls() {
-const adminControlsContainer = document.querySelector('.admin-controls');
-if (!adminControlsContainer) return;
-
-if (document.querySelector('.header-container').classList.contains('admin-mode')) {
-    adminControlsContainer.innerHTML = `
-        <button onclick="clearQueue()">Clear Queue</button>
-        <button onclick="skipTrack()">Skip Track</button>
-    `;
-    adminControlsContainer.style.display = 'block';
-} else {
-    adminControlsContainer.style.display = 'none';
-}
-}
-
-// Update the updateUIForAdminStatus function
 function updateUIForAdminStatus(isAdmin) {
-debugLog('Updating UI for admin status:', isAdmin);
-const header = document.querySelector('.header-container');
-const playNextButtons = document.querySelectorAll('.play-next-button');
-
-if (isAdmin) {
-    header.classList.add('admin-mode');
-    playNextButtons.forEach(button => button.style.display = 'inline-block');
-} else {
-    header.classList.remove('admin-mode');
-    playNextButtons.forEach(button => button.style.display = 'none');
+    UI.updateUIForAdminStatus(isAdmin);
+    Admin.updateAdminControls();
 }
 
-updateAdminControls();
-}
+// Initialize the app when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
 
-// Call updateAdminControls when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-// ... (previous code remains the same)
+// Expose necessary functions to the global scope for inline event handlers
+window.addTrackToQueue = (track_uri, track_name, artist_name) => {
+    Queue.addTrackToQueue(track_uri, track_name, artist_name, currentSessionId, sessionToken);
+};
+window.playTrackNow = (track_uri) => Queue.playTrackNow(track_uri, sessionToken);
+window.clearQueue = () => Queue.clearQueue(sessionToken);
+window.skipTrack = () => Queue.skipTrack(sessionToken);
+window.performSearch = performSearch;
+window.handleShareSession = handleShareSession;
+window.copySessionLink = () => {
+    const copyText = document.getElementById("sessionLink");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+    UI.showNotification("Copied the session link!", "success");
+};
 
-updateAdminControls();
-
-// ... (rest of the code remains the same)
-});
+console.log('App.js loaded');

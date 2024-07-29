@@ -1,26 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Lazy DJ</title>
-    <link rel="icon" type="image/x-icon" href="/static/icons/favicon.ico">
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-    <header class="header-container">
-        <div class="icon-version-container">
-            <div class="icon-container">
-                <img src="/static/icons/lazydjicon-512x512.png" alt="Lazy DJ Icon">
-            </div>
-        </div>
-        <h1><a href="/search" class="header-link">Welcome to the Lazy DJ!</a></h1>
-        <span class="version-display">v1.4.0</span>
-    </header>
-    <div class="content-container">
-        <div class="login-container">
-            <a href="/login">Login with Spotify</a>
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Lazy DJ{% endblock %}
+
+{% block content %}
+<div class="header-container">
+    <h1><a href="{{ url_for('routes.index') }}" class="header-link">Lazy DJ</a></h1>
+</div>
+
+<div class="content-container">
+    <div class="login-container">
+        <a href="{{ url_for('routes.login') }}" class="button" id="loginButton">Login with Spotify</a>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var loginButton = document.getElementById('loginButton');
+        loginButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            window.location.href = this.href;
+        });
+    });
+</script>
+{% endblock %}

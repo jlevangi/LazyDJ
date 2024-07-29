@@ -1,0 +1,299 @@
+/* main.css */
+@import 'base.css';
+@import 'header.css';
+@import 'content.css';
+@import 'search.css';
+@import 'queue.css';
+@import 'modal.css';
+
+body {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+    .header-container {
+        padding: 5px;
+    }
+
+    .icon-container {
+        width: 40px;
+        height: 40px;
+        left: 5px;
+    }
+
+    h1 {
+        padding: 10px 50px;
+        font-size: 20px;
+    }
+
+    .tip-button {
+        display: none !important;
+    }
+
+    .content-container {
+        flex-direction: column;
+        padding: 10px;
+        padding-bottom: calc(70px + env(safe-area-inset-bottom));
+        overflow: hidden;
+    }
+
+    .main-content {
+        padding-right: 0;
+        margin-bottom: 20px;
+        overflow-y: auto;
+        flex: 1;
+        padding-bottom: 10vh;
+    }
+
+    /* Search bar and results styles */
+    .search-bar {
+        flex-wrap: wrap;
+        border-radius: 5px;
+        overflow: hidden; /* This ensures child elements don't overflow the rounded corners */
+    }
+
+    .search-bar input[type="text"] {
+        flex: 1 0 100%;
+        margin-bottom: 10px;
+        border-radius: 5px;
+    }
+
+    .search-bar button[type="submit"],
+    .search-bar .clear-button {
+        flex: 1;
+        border-radius: 5px;
+        margin: 0 5px;
+    }
+
+    .search-bar button:first-of-type {
+        margin-left: 0;
+        border-top-left-radius: 5px;
+        border-bottom-left-radius: 5px;
+    }
+
+    .search-bar button:last-of-type {
+        margin-right: 0;
+        border-top-right-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+
+    /* Ensure bottom corners of input are rounded */
+    .search-bar input[type="text"] {
+        border-radius: 5px;
+    }
+    
+    .result-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+    }
+
+    .result-item .album-art {
+        width: 50px;
+        height: 50px;
+        margin-right: 10px;
+    }
+
+    .result-item .track-info {
+        flex-grow: 1;
+        margin-right: 10px;
+    }
+
+    .result-item .button-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .result-item button {
+        padding: 8px 12px;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .results {
+        padding-bottom: 0px;
+    }
+
+    /* Updated now playing bar styles */
+    .queue-container {
+        order: 2;
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 20px 20px 0 0;
+        padding: 0;
+        background-color: #1DB954;
+        transition: all 0.3s ease-in-out;
+        z-index: 1000;
+        overflow: hidden;
+        max-height: 70px;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .queue-container.expanded {
+        max-height: 50vh;
+        background-color: #282828;
+    }
+
+    .now-playing-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 70px;
+        cursor: pointer;
+        padding: 10px 20px;
+        color: white;
+        background-color: #1DB954;
+    }
+
+    .now-playing-section {
+        flex-grow: 1;
+        overflow: hidden;
+        padding-right: 10px;
+    }
+
+    .now-playing-section h2 {
+        margin: 0;
+        font-size: 16px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .current-track-info {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .expand-button {
+        font-size: 24px;
+        padding: 10px;
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .queue-container.expanded .expand-button {
+        transform: rotate(180deg);
+    }
+
+    .queue-content {
+        padding: 10px 20px;
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.3s ease-in-out;
+    }
+
+    .queue-container.expanded .queue-content {
+        opacity: 1;
+        max-height: calc(50vh - 70px);
+        overflow-y: auto;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+    }
+
+    .queue-item {
+        padding: 12px 10px;
+        margin: 8px 0;
+        border-bottom: 1px solid #3a3a3a;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .queue-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Other mobile-specific styles */
+    #notification {
+        font-size: 18px;
+        padding: 20px 30px;
+    }
+
+    .modal-content {
+        width: 90%;
+        margin: 10% auto;
+        padding: 15px;
+    }
+
+    .tip-qr-code {
+        max-width: 150px;
+    }
+
+    .header-link {
+        font-size: 24px;
+        padding: 5px 15px;
+    }
+
+    .header-link:hover {
+        background-color: transparent;
+    }
+
+    .main-content {
+        padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    }
+}
+
+
+@media (max-width: 480px) {
+    .header-container h1 {
+        font-size: 18px;
+    }
+
+    .new-session-button {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    .search-bar input[type="text"],
+    .search-bar button {
+        font-size: 16px;
+    }
+
+    .search-bar button {
+        padding: 10px 15px;
+    }
+
+    .result-item {
+        padding: 8px;
+    }
+
+    .track-name {
+        font-size: 14px;
+    }
+
+    .track-artist {
+        font-size: 12px;
+    }
+
+    .queue-container h2 {
+        font-size: 20px;
+    }
+
+    .now-playing-bar {
+        font-size: 14px;
+    }
+}
+
+@supports (padding: max(0px)) {
+    @media (max-width: 768px) {
+        .queue-container {
+            padding-bottom: max(env(safe-area-inset-bottom), 20px);
+        }
+
+        .now-playing-bar {
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
+        }
+
+        .queue-container.expanded .queue-content {
+            padding-bottom: max(calc(env(safe-area-inset-bottom) + 20px), 40px);
+        }
+
+        .main-content {
+            padding-bottom: max(calc(70px + env(safe-area-inset-bottom)), 90px);
+        }
+    }
+}

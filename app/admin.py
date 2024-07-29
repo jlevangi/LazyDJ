@@ -40,7 +40,7 @@ def deactivate_admin():
         return jsonify({"status": "success", "message": "Admin mode deactivated"})
     else:
         logger.info("Admin key not found in session")
-        return jsonify({"status": "error", "message": "Not in admin mode"})
+        return jsonify({"status": "success", "message": "Admin mode was not active"}), 200
 
 @bp.route('/admin_actions', methods=['POST'])
 def admin_actions():
