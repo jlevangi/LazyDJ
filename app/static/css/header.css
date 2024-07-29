@@ -58,6 +58,8 @@
 
 .header-link:hover {
     background-color: #1ED760;
+    text-decoration: none;
+
 }
 
 .new-session-button,

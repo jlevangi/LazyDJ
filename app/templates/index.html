@@ -1,22 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lazy DJ</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<body>
-    <div class="header-container">
-        <h1><a href="{{ url_for('routes.index') }}" class="header-link">Lazy DJ</a></h1>
-    </div>
+{% extends "base.html" %}
 
-    <div class="content-container">
-        <div class="login-container">
-            <a href="{{ url_for('routes.login') }}" class="button">Login with Spotify</a>
-        </div>
-    </div>
+{% block title %}Lazy DJ{% endblock %}
 
-    <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
-</body>
-</html>
+{% block content %}
+<div class="header-container">
+    <h1><a href="{{ url_for('routes.index') }}" class="header-link">Lazy DJ</a></h1>
+</div>
+
+<div class="content-container">
+    <div class="login-container">
+        <a href="{{ url_for('routes.login') }}" class="button" id="loginButton">Login with Spotify</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var loginButton = document.getElementById('loginButton');
+        loginButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            window.location.href = this.href;
+        });
+    });
+</script>
+{% endblock %}

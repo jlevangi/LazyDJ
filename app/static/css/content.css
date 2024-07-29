@@ -56,10 +56,13 @@
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    text-decoration: none;
+    
 }
 
 .button:hover {
     background-color: #1ED760;
+    text-decoration: none;
 }
 
 .button-secondary {
@@ -94,12 +97,24 @@
 
 .login-button:hover {
     background-color: #1ED760;
+    text-decoration: none;
 }
 
 @media (max-width: 768px) {
-    .login-container .login-button {
-        padding: 60px 120px;
-        font-size: 120px;
-        border-radius: 240px;
+    .login-container .button {
+        padding: 15px 30px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-container .button {
+        padding: 20px 40px;
+        font-size: 25px;
+    }
+
+    .login-button:hover {
+        background-color: #1ED760;
+        text-decoration: none;
     }
 }
