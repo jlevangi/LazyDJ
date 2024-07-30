@@ -1,36 +1,39 @@
-/* main.css */
-@import 'base.css';
-@import 'header.css';
-@import 'content.css';
-@import 'search.css';
-@import 'queue.css';
-@import 'modal.css';
-
-body {
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Mobile-specific styles */
+/* Base mobile styles (up to 768px) */
 @media (max-width: 768px) {
+    /* Header styles */
     .header-container {
-        padding: 5px;
+        padding: 8px;
+        flex-wrap: nowrap;
     }
 
     .icon-container {
         width: 40px;
         height: 40px;
-        left: 5px;
     }
 
-    h1 {
-        padding: 10px 50px;
-        font-size: 20px;
+    .header-container h1 {
+        font-size: 24px;
+        padding: 5px;
+        flex-grow: 1;
+        text-align: center;
     }
 
-    .tip-button {
-        display: none !important;
+    .new-session-button,
+    .share-session-button {
+        font-size: 16px;
+        padding: 8px 12px;
     }
 
+    .header-link {
+        font-size: 24px;
+        padding: 5px 15px;
+    }
+
+    .header-link:hover {
+        background-color: transparent;
+    }
+
+    /* Content layout */
     .content-container {
         flex-direction: column;
         padding: 10px;
@@ -46,7 +49,7 @@ body {
         padding-bottom: 10vh;
     }
 
-    /* Search bar and results styles */
+    /* Search bar */
     .search-bar {
         display: flex;
         flex-wrap: wrap;
@@ -70,22 +73,9 @@ body {
         border-radius: 5px;
         font-size: 16px;
         cursor: pointer;
-        border-radius: 5px;
-
     }
 
-    .search-bar button[type="submit"] {
-        background-color: #1DB954;
-        color: white;
-        border-radius: 5px;
-    }
-
-    .search-bar .clear-button {
-        background-color: #e74c3c;
-        color: white;
-        border-radius: 5px;
-    }
-    
+    /* Search results */
     .result-item {
         display: flex;
         align-items: center;
@@ -114,11 +104,7 @@ body {
         white-space: nowrap;
     }
 
-    .results {
-        padding-bottom: 0px;
-    }
-
-    /* Updated now playing bar styles */
+    /* Queue container */
     .queue-container {
         order: 2;
         width: 100%;
@@ -187,10 +173,6 @@ body {
         transform: rotate(180deg);
     }
 
-    .queue-container.expanded .expand-button {
-        transform: rotate(180deg);
-    }
-
     .queue-content {
         padding: 10px 20px;
         opacity: 0;
@@ -231,12 +213,7 @@ body {
         font-style: italic;
     }
 
-    /* Other mobile-specific styles */
-    #notification {
-        font-size: 18px;
-        padding: 20px 30px;
-    }
-
+    /* Modal styles */
     .modal-content {
         width: 90%;
         margin: 10% auto;
@@ -246,29 +223,16 @@ body {
     .tip-qr-code {
         max-width: 150px;
     }
-
-    .header-link {
-        font-size: 24px;
-        padding: 5px 15px;
-    }
-
-    .header-link:hover {
-        background-color: transparent;
-    }
-
-    .main-content {
-        padding-bottom: calc(70px + env(safe-area-inset-bottom));
-    }
 }
 
-
+/* Smaller mobile devices (up to 480px) */
 @media (max-width: 480px) {
     .header-container h1 {
         font-size: 18px;
     }
 
     .new-session-button {
-        font-size: 12px;
+        font-size: 16px;
         padding: 6px 10px;
     }
 
@@ -302,6 +266,7 @@ body {
     }
 }
 
+/* Safe area inset padding for notched devices */
 @supports (padding: max(0px)) {
     @media (max-width: 768px) {
         .queue-container {
@@ -316,8 +281,13 @@ body {
             padding-bottom: max(calc(env(safe-area-inset-bottom) + 20px), 40px);
         }
 
+        .content-container {
+            padding-bottom: max(calc(70px + env(safe-area-inset-bottom)), 90px);
+        }
+
         .main-content {
             padding-bottom: max(calc(70px + env(safe-area-inset-bottom)), 90px);
         }
     }
 }
+

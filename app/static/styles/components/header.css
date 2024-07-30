@@ -1,4 +1,4 @@
-/* header.css */
+/* Header container */
 .header-container {
     background-color: #1DB954;
     color: white;
@@ -13,6 +13,7 @@
     box-sizing: border-box;
 }
 
+/* Admin mode styles */
 .header-container.admin-mode {
     background-color: #282828;
 }
@@ -21,6 +22,7 @@
     color: red;
 }
 
+/* Icon container */
 .icon-container {
     width: 50px;
     height: 50px;
@@ -35,6 +37,7 @@
     object-fit: contain;
 }
 
+/* Header title */
 .header-container h1 {
     margin: 0;
     padding: 10px;
@@ -44,6 +47,7 @@
     flex-grow: 1;
 }
 
+/* Header link */
 .header-link {
     background-color: transparent;
     color: white;
@@ -54,14 +58,15 @@
     font-weight: bold;
     padding: 10px 30px;
     border: none;
+    transition: background-color 0.3s ease;
 }
 
 .header-link:hover {
     background-color: #1ED760;
     text-decoration: none;
-
 }
 
+/* Header buttons */
 .new-session-button,
 .share-session-button {
     background-color: #FFFFFF;
@@ -83,6 +88,7 @@
     background-color: #E6E6E6;
 }
 
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .header-container {
         padding: 8px;
@@ -97,8 +103,6 @@
     .header-container h1 {
         font-size: 24px;
         padding: 5px;
-        flex-grow: 1;
-        text-align: center;
     }
 
     .new-session-button,
@@ -118,18 +122,8 @@
 }
 
 @media (max-width: 480px) {
-    .header-container {
-        padding: 5px;
-    }
-
-    .icon-container {
-        width: 30px;
-        height: 30px;
-    }
-
     .header-container h1 {
-        font-size: 20px;
-        width: auto;
+        font-size: 18px;
     }
 
     .new-session-button,
