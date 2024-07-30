@@ -20,7 +20,7 @@
 
     .new-session-button,
     .share-session-button {
-        font-size: 14px;
+        font-size: 16px;
         padding: 8px 12px;
     }
 
@@ -232,7 +232,7 @@
     }
 
     .new-session-button {
-        font-size: 12px;
+        font-size: 16px;
         padding: 6px 10px;
     }
 

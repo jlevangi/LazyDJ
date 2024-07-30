@@ -22,14 +22,13 @@
     padding: 15px;
     font-size: 20px;
     border-radius: 5px 0 0 5px;
-    border: none;
+    border: none !important;
+    outline: none !important;
     background-color: #282828;
     color: #FFFFFF;
+    
 }
 
-.search-bar input[type="text"]::placeholder {
-    color: #B3B3B3;
-}
 
 .search-bar button {
     padding: 15px 25px;
@@ -50,6 +49,15 @@
 
 .search-bar button:hover {
     opacity: 0.9;
+}
+
+.search-bar input[type="text"]::selection {
+    background: transparent;
+}
+
+/* For Mozilla Firefox */
+.search-bar input[type="text"]::-moz-selection {
+    background: transparent;
 }
 
 /* Search results */
