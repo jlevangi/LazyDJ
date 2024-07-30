@@ -1,53 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lazy DJ</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-</head>
-<body>
-    <div class="header-container">
-        <h1><a href="{{ url_for('routes.index') }}" class="header-link" id="refreshLink">Lazy DJ</a></h1>
+{% extends "base.html" %}
+
+{% block title %}Lazy DJ{% endblock %}
+
+{% block content %}
+<div class="header-container">
+    <h1><a href="{{ url_for('routes.index') }}" class="header-link">Lazy DJ</a></h1>
+</div>
+
+<div class="content-container">
+    <div class="login-container">
+        <a href="{{ url_for('routes.login') }}" class="login-button" id="loginButton">Login with Spotify</a>
     </div>
+</div>
+{% endblock %}
 
-    <div class="content-container">
-        <div class="login-container">
-            <a href="{{ url_for('routes.login') }}" id="loginButton" class="login-button">Login with Spotify</a>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const loginButton = document.getElementById('loginButton');
-            const refreshLink = document.getElementById('refreshLink');
-
-            // Function to handle navigation
-            function navigateToUrl(url) {
-                alert(`Navigating to ${url}`); // Debugging alert
-                window.location.href = url;
-            }
-
-            // Improve touch responsiveness for login button
-            loginButton.addEventListener('touchstart', function(e) {
-                navigateToUrl(this.href);
-            }, { passive: true });
-
-            // Improve touch responsiveness for header refresh
-            refreshLink.addEventListener('touchstart', function(e) {
-                alert('Refreshing page'); // Debugging alert
-                window.location.reload();
-            }, { passive: true });
-
-            // Add click event listeners for non-touch devices
-            loginButton.addEventListener('click', function(e) {
-                navigateToUrl(this.href);
-            });
-
-            refreshLink.addEventListener('click', function(e) {
-                window.location.reload();
-            });
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var loginButton = document.getElementById('loginButton');
+        loginButton.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            window.location.href = this.href;
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}
