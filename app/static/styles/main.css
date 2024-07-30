@@ -43,6 +43,8 @@ body {
     justify-content: center;
     align-items: center;
     height: 50vh;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* Add any other global styles here */
