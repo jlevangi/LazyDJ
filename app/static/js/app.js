@@ -221,7 +221,7 @@ function handleShareSession() {
             console.log('Share session URL:', secureUrl);
             sessionLinkElement.value = secureUrl;
         }
-        shareModal.style.display = 'block';
+        showModal('shareModal');
     }
 }
 
@@ -295,6 +295,14 @@ function closeTipModal(modal) {
 
 function closeModal(modal) {
     modal.style.display = 'none';
+}
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+        setTimeout(() => modal.classList.add('show'), 10);
+    }
 }
 
 function updateUIForAdminStatus(isAdmin) {

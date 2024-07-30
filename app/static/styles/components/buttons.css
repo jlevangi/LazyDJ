@@ -1,0 +1,134 @@
+/* Base button styles */
+.button {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    background-color: #1DB954;
+    color: #fcfcfc;
+}
+
+.button-primary {
+    background-color: #1DB954;
+    color: white;
+}
+
+.button-primary:hover {
+    background-color: #1ED760;
+}
+
+.login-button {
+    font-size: 24px;
+    padding: 15px 30px;
+}
+
+/* Secondary button */
+.button-secondary {
+    background-color: #535353;
+    color: #FFFFFF;
+}
+
+.button-secondary:hover {
+    background-color: #636363;
+}
+
+/* Tertiary button (outline) */
+.button-tertiary {
+    background-color: transparent;
+    color: #1DB954;
+    border: 2px solid #1DB954;
+}
+
+.button-tertiary:hover {
+    background-color: #1DB954;
+    color: #FFFFFF;
+}
+
+/* Large button */
+.button-large {
+    padding: 15px 30px;
+    font-size: 18px;
+}
+
+/* Small button */
+.button-small {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+/* Full-width button */
+.button-full {
+    display: block;
+    width: 100%;
+}
+
+/* Disabled button */
+.button:disabled,
+.button.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Specific button styles */
+.login-button {
+    padding: 30px 60px;
+    font-size: 60px;
+    background-color: #1DB954;
+    color: white;
+    border-radius: 120px;
+}
+
+.login-button:hover {
+    background-color: #1ED760;
+}
+
+.copy-link-button {
+    background-color: #1DB954;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    display: block;
+    margin: 15px auto 0;
+}
+
+.copy-link-button:hover {
+    background-color: #1ED760;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .button {
+        padding: 16px 32px;
+        font-size: 20px;
+    }
+
+    .button:hover {
+        text-decoration: none;
+        background-color: #1ED760;
+    }
+
+    .button-large {
+        padding: 12px 24px;
+        font-size: 16px;
+    }
+
+    .login-button {
+        font-size: 20px;
+        padding: 12px 24px;
+    }
+
+    .login-button:active {
+        opacity: 0.8;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-button {
+        padding: 15px 30px;
+        font-size: 30px;
+    }
+}

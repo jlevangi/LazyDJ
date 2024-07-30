@@ -1,32 +1,54 @@
-/* base.css */
-body {
-    font-family: Arial, sans-serif;
-    background-color: #121212;
-    color: #FFFFFF;
+/* Reset styles */
+* {
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
-/* General styles */
+/* Base typography */
+body {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #FFFFFF;
+    background-color: #121212;
+}
+
 h1, h2, h3, h4, h5, h6 {
     margin-top: 0;
+    margin-bottom: 0.5em;
+    font-weight: bold;
 }
 
+h1 { font-size: 2.5em; }
+h2 { font-size: 2em; }
+h3 { font-size: 1.75em; }
+h4 { font-size: 1.5em; }
+h5 { font-size: 1.25em; }
+h6 { font-size: 1em; }
+
+p {
+    margin-bottom: 1em;
+}
+
+/* Links */
 a {
     color: #1DB954;
     text-decoration: none;
+    transition: color 0.3s ease;
 }
 
 a:hover {
     text-decoration: underline;
+    color: #1ED760;
 }
 
-button {
-    cursor: pointer;
+/* Basic layout */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
 /* Utility classes */
@@ -46,4 +68,34 @@ button {
     content: "";
     display: table;
     clear: both;
+}
+
+/* Focus styles for accessibility */
+:focus {
+    outline: 2px solid #1DB954;
+    outline-offset: 2px;
+}
+
+/* Selection styles */
+::selection {
+    background-color: #1DB954;
+    color: #FFFFFF;
+}
+
+/* Scrollbar styles (for WebKit browsers) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #282828;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1DB954;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #1ED760;
 }

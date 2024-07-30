@@ -1,0 +1,77 @@
+/* Base styles */
+@import 'base.css';
+
+/* Layout */
+@import 'layout.css';
+
+/* Components */
+@import 'components/header.css';
+@import 'components/buttons.css';
+@import 'components/modals.css';
+
+/* Pages */
+@import 'pages/search.css';
+@import 'pages/queue.css';
+
+/* Utilities */
+@import 'utilities.css';
+
+/* Responsive styles */
+@import 'responsive.css';
+
+/* Any additional global styles */
+body {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Ensure the content area takes up at least the full viewport height */
+.content-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main content area */
+.main-content {
+    flex: 1;
+}
+
+/* Global notification styles */
+#notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: 5px;
+    background-color: #333;
+    color: #fff;
+    z-index: 1000;
+    transition: opacity 0.3s ease-in-out;
+    opacity: 0;
+}
+
+#notification.show {
+    opacity: 1;
+}
+
+#notification.error {
+    background-color: #e74c3c;
+}
+
+/* Login container styles */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50vh;
+}
+
+/* Add any other global styles here */
+
+/* Media queries for global responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    }
+}
