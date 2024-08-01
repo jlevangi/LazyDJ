@@ -6,6 +6,8 @@ from app.models import add_recent_track, Track
 from app.admin import check_if_admin
 from app.sessions import create_new_session
 from app.sessions import bp as sessions_bp
+from .log_utils import format_debug_output
+
 import spotipy
 from spotipy.exceptions import SpotifyException
 import time
@@ -192,9 +194,13 @@ def current_queue():
             else:
                 radio_queue.append(track_info)
 
-        current_app.logger.debug(f"Current track: {current_track}")
-        current_app.logger.debug(f"User queue: {user_queue}")
-        current_app.logger.debug(f"Radio queue: {radio_queue}")
+        debug_data = {
+            'current_track': current_track,
+            'user_queue': user_queue,
+            'radio_queue': radio_queue
+        }
+        formatted_output = format_debug_output(debug_data)
+        current_app.logger.debug(f"Queue Information:\n{formatted_output}")
 
         return jsonify({
             'current_track': {
@@ -202,13 +208,10 @@ def current_queue():
                 'artists': ', '.join([artist['name'] for artist in current_track['item']['artists']])
             } if current_track and current_track['is_playing'] else None,
             'user_queue': user_queue,
-            'radio_queue': radio_queue
+            'radio_queue': radio_queue[:5]  # Limit to first 5 tracks
         })
-    except SpotifyException as e:
-        logger.error(f"Spotify API error in current_queue: {e}")
-        return jsonify({"error": str(e)}), 500
     except Exception as e:
-        logger.error(f"Unexpected error in current_queue: {e}")
+        logger.error(f"Error fetching queue: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({"error": "An unexpected error occurred"}), 500
 
