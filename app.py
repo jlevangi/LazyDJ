@@ -5,6 +5,8 @@ import logging
 import argparse
 from logging.handlers import RotatingFileHandler
 import os
+from app.sessions import bp as sessions_bp
+
 
 def create_app(config_class=Config):
     app = Flask(__name__, 
@@ -36,11 +38,11 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp)
 
     from app.sessions import bp as sessions_bp
-    app.register_blueprint(sessions_bp, url_prefix='/session')
+    app.register_blueprint(sessions_bp)  # No url_prefix to allow /create_session at root
 
-    # Import and register error handlers
-    from app.error_handlers import bp as errors_bp
-    app.register_blueprint(errors_bp)
+    # Initialize error handlers
+    from app.error_handlers import init_app as init_error_handlers
+    init_error_handlers(app)
 
     return app
 

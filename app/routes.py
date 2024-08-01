@@ -1,18 +1,18 @@
+# routes.py
+
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app, send_from_directory
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info, get_spotify_client
-from app.models import add_recent_track, Track, create_session, get_session, add_track_to_session
-from urllib.parse import urlparse, urlunparse
-import traceback
+from app.models import add_recent_track, Track
 from app.admin import check_if_admin
+from app.sessions import create_new_session
+from app.sessions import bp as sessions_bp
 import spotipy
 from spotipy.exceptions import SpotifyException
 import time
 import logging
 import os
 from threading import Lock
-import qrcode
-from io import BytesIO
-import base64
+import traceback
 import json
 
 bp = Blueprint('routes', __name__)
@@ -57,7 +57,6 @@ def callback():
         logger.error(f"Error in callback: {e}")
         return jsonify({"error": "Authentication failed"}), 400
 
-
 @bp.route('/search')
 def search():
     query = request.args.get('query', '').strip()
@@ -66,7 +65,6 @@ def search():
     if not token_info:
         return redirect(url_for('routes.login'))
 
-    # If it's not an AJAX request, render the full page
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         qr_code_available = qr_code_exists()
         return render_template('search.html', tracks=[], query=query, qr_code_available=qr_code_available)
@@ -89,16 +87,13 @@ def search():
 
         return jsonify({"tracks": track_info})
     except SpotifyException as e:
-        error_message = f"Spotify API error: {str(e)}"
-        print(error_message)
-        print(traceback.format_exc())
-        return jsonify({"error": error_message}), 500
+        logger.error(f"Spotify API error: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Spotify API error: {str(e)}"}), 500
     except Exception as e:
-        error_message = f"Unexpected error: {str(e)}"
-        print(error_message)
-        print(traceback.format_exc())
-        return jsonify({"error": error_message}), 500
-
+        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 @bp.route('/queue', methods=['POST'])
 def queue():
@@ -143,8 +138,6 @@ def queue():
             else:
                 return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
 
-
-
 @bp.route('/play_now', methods=['POST'])
 def play_now():
     token_info = get_token()
@@ -158,10 +151,7 @@ def play_now():
     sp = spotipy.Spotify(auth=token_info['access_token'])
     
     try:
-        # Start playing the track immediately
         sp.start_playback(uris=[track_uri])
-        
-        # Add the track to the recent tracks
         track_info = sp.track(track_uri)
         add_recent_track(Track(
             uri=track_uri,
@@ -169,7 +159,6 @@ def play_now():
             artists=', '.join([artist['name'] for artist in track_info['artists']]),
             album_art=track_info['album']['images'][0]['url'] if track_info['album']['images'] else None
         ))
-        
         return jsonify({"status": "success", "message": "Track started playing"})
     except SpotifyException as e:
         logger.error(f"Spotify API error: {str(e)}")
@@ -249,176 +238,10 @@ def recommendations():
 
     return jsonify(track_info)
 
-def force_https_url(url):
-    parsed = urlparse(url)
-    return urlunparse(parsed._replace(scheme='https'))
-
-@bp.route('/create_session', methods=['POST'])
-def create_new_session():
-    token_info = get_token()
-    if not token_info:
-        logger.warning("No token info available when creating new session")
-        return jsonify({"status": "error", "message": "Not authenticated"}), 401
-
-    try:
-        new_session = create_session(json.dumps(token_info))
-        session['current_session_id'] = new_session.session_id
-        logger.info(f"New session created with ID: {new_session.session_id}")
-        
-        # Generate HTTPS URL
-        redirect_url = url_for('routes.session_view', 
-                               session_id=new_session.session_id, 
-                               _external=True, 
-                               _scheme='https')  # Force HTTPS here
-        
-        logger.debug(f"Initial redirect URL: {redirect_url}")
-        
-        # Ensure HTTPS
-        parsed_url = urlparse(redirect_url)
-        if parsed_url.scheme != 'https':
-            logger.warning(f"URL scheme was not HTTPS, forcing HTTPS. Original URL: {redirect_url}")
-            redirect_url = parsed_url._replace(scheme='https').geturl()
-        
-        logger.debug(f"Final redirect URL: {redirect_url}")
-        logger.debug(f"URL scheme: {urlparse(redirect_url).scheme}")
-        
-        # Double-check HTTPS
-        if not redirect_url.startswith('https://'):
-            logger.error(f"Failed to set HTTPS. Current URL: {redirect_url}")
-            redirect_url = redirect_url.replace('http://', 'https://', 1)
-            logger.debug(f"Forced HTTPS. New URL: {redirect_url}")
-        
-        response_data = {
-            "status": "success",
-            "session_id": new_session.session_id,
-            "redirect_url": redirect_url
-        }
-        logger.debug(f"Response data: {response_data}")
-        
-        return jsonify(response_data)
-    except Exception as e:
-        logger.error(f"Error creating new session: {str(e)}", exc_info=True)
-        return jsonify({"status": "error", "message": f"Error creating new session: {str(e)}"}), 500
-    
 @bp.route('/static/<path:path>')
 def send_static(path):
     return send_from_directory('static', path)
 
-@bp.route('/session/<session_id>')
-def session_view(session_id):
-    current_session = get_session(session_id)
-    if not current_session:
-        return render_template('session_not_found.html'), 404
-
-    # Generate QR code for the current page
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(request.url)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffered = BytesIO()
-    img.save(buffered)
-    qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
-
-    # Store the session token in the user's session
-    session['token_info'] = current_session.owner_token
-
-    return render_template('session.html', session_id=session_id, qr_code_base64=qr_code_base64)
-
-
-@bp.route('/session/<session_id>/token')
-def get_session_token(session_id):
-    current_session = get_session(session_id)
-    if not current_session:
-        return jsonify({"error": "Session not found"}), 404
-
-    return jsonify({"token": current_session.owner_token})
-
-
-@bp.route('/session/<session_id>/search')
-def session_search(session_id):
-    query = request.args.get('query', '').strip()
-    current_session = get_session(session_id)
-    if not current_session:
-        return jsonify({"error": "Session not found"}), 404
-
-    token_info = current_session.owner_token
-    if not token_info:
-        return jsonify({"error": "Session owner not authenticated"}), 401
-
-    sp = spotipy.Spotify(auth=token_info)
-    try:
-        results = sp.search(q=query, type='track', limit=10)
-        tracks = results['tracks']['items']
-
-        track_info = []
-        for track in tracks:
-            track_data = {
-                'name': track['name'],
-                'artists': ', '.join([artist['name'] for artist in track['artists']]),
-                'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                'uri': track['uri'],
-                'id': track['id']
-            }
-            track_info.append(track_data)
-
-        return jsonify({"tracks": track_info})
-    except SpotifyException as e:
-        logger.error(f"Spotify API error in session search: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-    except Exception as e:
-        logger.error(f"Unexpected error in session search: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@bp.route('/session/<session_id>/queue', methods=['POST'])
-def session_queue(session_id):
-    current_session = get_session(session_id)
-    if not current_session:
-        return jsonify({"error": "Session not found"}), 404
-
-    track_uri = request.form.get('track_uri')
-    track_name = request.form.get('track_name')
-    artist_name = request.form.get('artist_name')
-
-    if not all([track_uri, track_name, artist_name]):
-        return jsonify({"error": "Missing track information"}), 400
-
-    try:
-        token_info = current_session.owner_token
-        sp = spotipy.Spotify(auth=token_info)
-        sp.add_to_queue(track_uri)
-        add_track_to_session(current_session, track_uri, track_name, artist_name)
-        return jsonify({"status": "success", "message": "Track added to session queue"})
-    except Exception as e:
-        logger.error(f"Error adding track to session queue: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@bp.route('/session/<session_id>/current_queue', methods=['GET'])
-def session_current_queue(session_id):
-    current_session = get_session(session_id)
-    if not current_session:
-        return jsonify({"error": "Session not found"}), 404
-
-    token_info = current_session.get_token_info()
-    if not token_info:
-        return jsonify({"error": "Session owner not authenticated"}), 401
-
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    
-    try:
-        queue_info = sp._get('me/player/queue')
-        current_track = sp.currently_playing()
-
-        user_queue = current_session.get_queue()
-        radio_queue = [track for track in queue_info['queue'] if track['uri'] not in [t['uri'] for t in user_queue]]
-
-        return jsonify({
-            'current_track': {
-                'name': current_track['item']['name'],
-                'artists': ', '.join([artist['name'] for artist in current_track['item']['artists']])
-            } if current_track and current_track['is_playing'] else None,
-            'user_queue': user_queue,
-            'radio_queue': radio_queue[:5]  # Limit to first 5 tracks
-        })
-    except Exception as e:
-        logger.error(f"Error fetching queue for session {session_id}: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+@bp.route('/create_session', methods=['POST'])
+def route_create_session():
+    return create_new_session()

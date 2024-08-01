@@ -30,44 +30,38 @@ export function addTrackToQueue(track_uri, trackName, artistName, sessionId = ''
     }
 
     addToQueueTimeout = setTimeout(() => {
-        fetch('/check_admin_status')
-        .then(response => response.json())
-        .then(data => {
-            console.log('Admin check response:', data);
-            updateUIForAdminStatus(data.is_admin);
-            
-            currentRequest = new AbortController();
-            const signal = currentRequest.signal;
+        const url = sessionId ? `/session/${sessionId}/queue` : '/queue';
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        };
+        if (sessionToken) {
+            headers['Authorization'] = `Bearer ${sessionToken}`;
+        }
 
-            const url = sessionId ? `/session/${sessionId}/queue` : '/queue';
-            const headers = {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            };
-            if (sessionToken) {
-                headers['Authorization'] = `Bearer ${sessionToken}`;
-            }
+        currentRequest = new AbortController();
+        const signal = currentRequest.signal;
 
-            return fetch(url, {
-                method: 'POST',
-                headers: headers,
-                body: new URLSearchParams({ 
-                    'track_uri': track_uri, 
-                    'track_name': trackName, 
-                    'artist_name': artistName,
-                    'is_admin': data.is_admin
-                }),
-                signal: signal
-            });
+        fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: new URLSearchParams({ 
+                'track_uri': track_uri, 
+                'track_name': trackName, 
+                'artist_name': artistName
+            }),
+            signal: signal
         })
         .then(response => response.json())
         .then(data => {
             console.log('Server response:', data);
             if (data.status === 'success') {
-                showNotification(data.message || 'Track added to queue!', 'success');
+                let message = data.message;
+                if (data.playlist_name) {
+                    message += ` "${data.playlist_name}"`;
+                }
+                showNotification(message, 'success');
                 fetchQueue(sessionId, sessionToken);
-            } else if (data.status === 'cooldown') {
-                showNotification(data.message || 'This track was recently played. Please try again later.', 'info');
-            } else {
+            } else if (data.status === 'error') {
                 showNotification(data.message || 'Failed to add track to queue', 'error');
             }
         })

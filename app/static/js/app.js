@@ -34,9 +34,18 @@ function initializeApp() {
 function initializeSession(sessionId) {
     fetchSessionToken(sessionId)
         .then(() => {
+            return fetch(`/session/${sessionId}/info`);
+        })
+        .then(response => response.json())
+        .then(data => {
             fetchAndUpdateQueue(sessionId);
             setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
             loadInitialSearch(sessionId);
+            if (data.playlist_name && data.playlist_name !== "No playlist created") {
+                showNotification(`Session started. A new playlist "${data.playlist_name}" has been created.`, 'success');
+            } else {
+                showNotification(`Session started. No playlist could be created.`, 'warning');
+            }
         })
         .catch(error => {
             console.error('Error initializing session:', error);
