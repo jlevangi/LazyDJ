@@ -32,29 +32,32 @@
 
 <div id="sessionSettingsModal" class="modal">
     <div class="modal-content">
-      <span class="close">&times;</span>
-      <h2>Session Settings</h2>
-      <button id="shareSessionButton">Share Session</button>
-      <button id="createPlaylistButton">Create Playlist</button>
-      <button id="sharePlaylistButton" disabled>Share Playlist</button>
-      
-      <div id="sessionLinkContainer" style="display: none;">
-        <h3>Session Link</h3>
-        <div id="sessionQRCode"></div>
-        <input type="text" id="sessionLink" readonly>
-        <button onclick="copySessionLink()">Copy Session Link</button>
-      </div>
-      
-      <div id="playlistLinkContainer" style="display: none;">
-        <h3>Playlist Link</h3>
-        <div id="playlistQRCode"></div>
-        <input type="text" id="playlistLink" readonly>
-        <button onclick="copyPlaylistLink()">Copy Playlist Link</button>
-      </div>
+        <div class="button-container">
+            <button id="shareSessionButton">Share Session</button>
+            <button id="createPlaylistButton">Create Session Playlist</button>
+        </div>
+        
+        <div id="sessionLinkContainer" style="display: none;">
+            <div class="qr-code-label">Scan to share session</div>
+            <div id="sessionQRCode" class="qr-code-container"></div>
+            <div class="spacer"></div>
+            <button onclick="copySessionLink()" class="copy-link-button">Copy Session Link</button>
+        </div>
+        
+        <div id="playlistLinkContainer" style="display: none;">
+            <div class="qr-code-label">Scan to share playlist</div>
+            <div id="playlistQRCode" class="qr-code-container"></div>
+            <div class="spacer"></div>
+            <button onclick="copyPlaylistLink()" class="copy-link-button">Copy Playlist Link</button>
+        </div>
+        
+        <div class="close-button-container">
+            <button id="closeSessionSettingsButton" class="close-button">Close</button>
+        </div>
     </div>
-  </div>
+</div>
 
-<div id="notification"></div>
+<div id="notification" class="notification"></div>
 {% endblock %}
 
 {% block scripts %}

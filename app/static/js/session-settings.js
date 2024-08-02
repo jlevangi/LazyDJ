@@ -1,5 +1,7 @@
 // session-settings.js
 
+import { showNotification } from './ui.js';
+
 console.log('session-settings.js loaded');
 
 let sessionPlaylistId = null;
@@ -8,10 +10,9 @@ export function setupSessionSettingsListeners() {
     console.log('Setting up session settings listeners');
     const sessionSettingsButton = document.getElementById('sessionSettingsButton');
     const sessionSettingsModal = document.getElementById('sessionSettingsModal');
-    const closeBtn = sessionSettingsModal.querySelector('.close');
+    const closeBtn = document.getElementById('closeSessionSettingsButton');
     const shareSessionButton = document.getElementById('shareSessionButton');
     const createPlaylistButton = document.getElementById('createPlaylistButton');
-    const sharePlaylistButton = document.getElementById('sharePlaylistButton');
 
     console.log('Session Settings Button:', sessionSettingsButton);
     console.log('Session Settings Modal:', sessionSettingsModal);
@@ -19,26 +20,30 @@ export function setupSessionSettingsListeners() {
     sessionSettingsButton.addEventListener('click', openSessionSettingsModal);
     closeBtn.addEventListener('click', closeSessionSettingsModal);
     shareSessionButton.addEventListener('click', handleShareSession);
-    createPlaylistButton.addEventListener('click', handleCreatePlaylist);
-    sharePlaylistButton.addEventListener('click', handleSharePlaylist);
+    createPlaylistButton.addEventListener('click', handleCreateOrSharePlaylist);
 
-    window.addEventListener('click', (event) => {
-        if (event.target == sessionSettingsModal) {
-            closeSessionSettingsModal();
-        }
-    });
+    // Check if a playlist has already been created for this session
+    checkExistingPlaylist();
+}
+
+function checkExistingPlaylist() {
+    // You might want to make an API call here to check if a playlist exists for the current session
+    // For now, we'll use localStorage as a simple example
+    const playlistId = localStorage.getItem('sessionPlaylistId');
+    if (playlistId) {
+        sessionPlaylistId = playlistId;
+        updateButtonToSharePlaylist();
+    }
 }
 
 export function openSessionSettingsModal() {
     console.log('Opening session settings modal');
     const modal = document.getElementById('sessionSettingsModal');
-    console.log('Session Settings Modal (in open function):', modal);
     if (modal) {
         modal.style.display = 'block';
         setTimeout(() => {
             modal.classList.add('show');
         }, 10);
-        console.log('Modal classes:', modal.className);
     } else {
         console.error('Modal element not found');
     }
@@ -51,22 +56,27 @@ function closeSessionSettingsModal() {
         modal.classList.remove('show');
         setTimeout(() => {
             modal.style.display = 'none';
-        }, 300); // Match this to your CSS transition time
+        }, 300);
     }
 }
 
 function handleShareSession() {
-    const sessionLinkElement = document.getElementById('sessionLink');
     const currentUrl = window.location.href;
-    sessionLinkElement.value = currentUrl;
-
     generateQRCode('sessionQRCode', currentUrl);
-
-    document.getElementById('sessionLinkContainer').style.display = 'block';
+    document.getElementById('sessionLinkContainer').style.display = 'flex';
     document.getElementById('playlistLinkContainer').style.display = 'none';
+    document.querySelector('#sessionLinkContainer .qr-code-label').textContent = 'Scan to share session';
 }
 
-function handleCreatePlaylist() {
+function handleCreateOrSharePlaylist() {
+    if (sessionPlaylistId) {
+        handleSharePlaylist();
+    } else {
+        createPlaylist();
+    }
+}
+
+function createPlaylist() {
     console.log('Sending create playlist request');
     fetch('/create_session_playlist', {
         method: 'POST',
@@ -74,16 +84,16 @@ function handleCreatePlaylist() {
             'Content-Type': 'application/json',
         },
     })
-    .then(response => {
-        console.log('Create playlist response status:', response.status);
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         console.log('Create playlist response data:', data);
         if (data.status === 'success') {
             sessionPlaylistId = data.playlist_id;
+            // Save the playlist ID (you might want to use a more permanent storage solution)
+            localStorage.setItem('sessionPlaylistId', sessionPlaylistId);
             showNotification(`Playlist "${data.playlist_name}" created successfully!`, 'success');
-            document.getElementById('sharePlaylistButton').disabled = false;
+            updateButtonToSharePlaylist();
+            handleSharePlaylist();
         } else {
             showNotification(`Failed to create playlist: ${data.message}`, 'error');
         }
@@ -94,20 +104,22 @@ function handleCreatePlaylist() {
     });
 }
 
+function updateButtonToSharePlaylist() {
+    const createPlaylistButton = document.getElementById('createPlaylistButton');
+    createPlaylistButton.textContent = 'Share Playlist';
+}
+
 function handleSharePlaylist() {
     if (!sessionPlaylistId) {
         showNotification('No playlist created yet', 'error');
         return;
     }
 
-    const playlistLinkElement = document.getElementById('playlistLink');
     const playlistUrl = `https://open.spotify.com/playlist/${sessionPlaylistId}`;
-    playlistLinkElement.value = playlistUrl;
-
     generateQRCode('playlistQRCode', playlistUrl);
-
     document.getElementById('sessionLinkContainer').style.display = 'none';
-    document.getElementById('playlistLinkContainer').style.display = 'block';
+    document.getElementById('playlistLinkContainer').style.display = 'flex';
+    document.querySelector('#playlistLinkContainer .qr-code-label').textContent = 'Scan to share playlist';
 }
 
 function generateQRCode(elementId, data) {
@@ -115,30 +127,30 @@ function generateQRCode(elementId, data) {
     element.innerHTML = ''; // Clear previous QR code
     new QRCode(element, {
         text: data,
-        width: 128,
-        height: 128,
+        width: 256,
+        height: 256,
     });
 }
 
 export function copySessionLink() {
-    copyToClipboard('sessionLink');
+    copyToClipboard(window.location.href);
 }
 
 export function copyPlaylistLink() {
-    copyToClipboard('playlistLink');
+    if (sessionPlaylistId) {
+        copyToClipboard(`https://open.spotify.com/playlist/${sessionPlaylistId}`);
+    } else {
+        showNotification('No playlist created yet', 'error');
+    }
 }
 
-function copyToClipboard(elementId) {
-    const copyText = document.getElementById(elementId);
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-    showNotification("Link copied to clipboard!", "success");
-}
-
-function showNotification(message, type) {
-    // You can implement this function or import it from your UI module
-    console.log(`${type}: ${message}`);
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification("Link copied to clipboard!", 'success');
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        showNotification("Failed to copy link", "error");
+    });
 }
 
 document.addEventListener('DOMContentLoaded', setupSessionSettingsListeners);
