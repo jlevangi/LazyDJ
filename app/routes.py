@@ -1,8 +1,8 @@
 # routes.py
 
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app, send_from_directory
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info, get_spotify_client
-from app.models import add_recent_track, Track
+from app.models import add_recent_track, Track, add_track_to_session, get_session
 from app.admin import check_if_admin
 from app.sessions import create_new_session
 from app.sessions import bp as sessions_bp
@@ -99,6 +99,7 @@ def search():
 
 @bp.route('/queue', methods=['POST'])
 def queue():
+    logger.debug("Entering queue route")
     token_info = get_token()
     if not token_info:
         logger.warning('No token info available')
@@ -108,10 +109,8 @@ def queue():
     track_name = request.form.get('track_name')
     artist_name = request.form.get('artist_name')
     is_admin = request.form.get('is_admin') == 'true'
-    current_time = time.time()
 
-    if current_app.debug:
-        logger.debug(f"Attempting to queue: {track_name} by {artist_name}")
+    logger.debug(f"Attempting to queue: {track_name} by {artist_name}")
 
     if not track_uri:
         logger.error("No track_uri provided in request")
@@ -120,18 +119,38 @@ def queue():
     cooldown_period = 1200  # 20 minutes in seconds
 
     with queue_lock:
-        if not is_admin and track_uri in recent_tracks and current_time - recent_tracks[track_uri] < cooldown_period:
-            if current_app.debug:
-                logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
+        # Get the current session
+        current_session_id = session.get('current_session_id')
+        logger.debug(f"Current session ID: {current_session_id}")
+        
+        if current_session_id:
+            current_session = get_session(current_session_id)
+            if not current_session:
+                logger.error(f"No session found for ID: {current_session_id}")
+                return jsonify({"status": "error", "type": "error", "message": "Session not found"}), 404
+        else:
+            logger.warning("No current session ID found")
+            return jsonify({"status": "error", "type": "error", "message": "No active session"}), 400
+
+        if not is_admin and current_session.is_track_on_cooldown(track_uri, cooldown_period):
+            logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
             return jsonify({"status": "error", "message": "This track was recently played. Please try again later."}), 200
 
-        recent_tracks[track_uri] = current_time
         sp = spotipy.Spotify(auth=token_info['access_token'])
         
         try:
             sp.add_to_queue(track_uri)
-            if current_app.debug:
-                logger.debug(f"Successfully added to queue: {track_name} by {artist_name}")
+            logger.debug(f"Successfully added to Spotify queue: {track_name} by {artist_name}")
+            
+            # Add track to session
+            result = add_track_to_session(current_session, track_uri, track_name, artist_name)
+            logger.debug(f"Result of add_track_to_session: {result}")
+            
+            if result['added_to_playlist']:
+                logger.info(f"Track added to playlist: {track_name} by {artist_name}")
+            else:
+                logger.warning(f"Track not added to playlist: {track_name} by {artist_name}")
+            
             return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
         except SpotifyException as e:
             logger.error(f"Spotify API error: {str(e)}")
@@ -139,6 +158,7 @@ def queue():
                 return jsonify({"status": "error", "type": "error", "message": "No active device found. Please open Spotify on a device and try again."})
             else:
                 return jsonify({"status": "error", "type": "error", "message": f"An error occurred: {str(e)}"})
+
 
 @bp.route('/play_now', methods=['POST'])
 def play_now():
