@@ -5,6 +5,7 @@ import * as Admin from './admin.js';
 import * as UI from './ui.js';
 import * as Util from './util.js';
 import * as Sessions from './sessions.js';
+import * as SessionSettings from './session-settings.js';
 
 let currentSessionId = null;
 let sessionToken = null;
@@ -26,6 +27,7 @@ function initializeApp() {
 
         setupEventListeners();
         updateUIForMobile();
+        SessionSettings.setupSessionSettingsListeners();
 
         console.log('App initialization complete');
     });
@@ -110,6 +112,7 @@ function setupEventListeners() {
     const shareSessionButton = document.getElementById('shareSessionButton');
     const iconContainer = document.querySelector('.icon-container');
     const headerLink = document.querySelector('.header-link');
+
 
     if (headerLink) {
         headerLink.addEventListener('click', function(e) {
@@ -330,13 +333,7 @@ window.playTrackNow = (track_uri) => Queue.playTrackNow(track_uri, sessionToken)
 window.clearQueue = () => Queue.clearQueue(sessionToken);
 window.skipTrack = () => Queue.skipTrack(sessionToken);
 window.performSearch = performSearch;
-window.handleShareSession = handleShareSession;
-window.copySessionLink = () => {
-    const copyText = document.getElementById("sessionLink");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-    UI.showNotification("Copied the session link!", "success");
-};
+window.copySessionLink = SessionSettings.copySessionLink;
+window.copyPlaylistLink = SessionSettings.copyPlaylistLink;
 
 console.log('App.js loaded');
