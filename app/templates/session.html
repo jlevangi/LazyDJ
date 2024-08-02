@@ -14,7 +14,7 @@
 <div class="content-container">
     <div class="main-content">
         <div class="search-bar-container">
-            <form class="search-bar" action="{{ url_for('routes.session_search', session_id=session_id) }}" method="get">
+            <form class="search-bar" action="{{ url_for('sessions.session_search', session_id=session_id) }}" method="get">
                 <input type="text" name="query" placeholder="Search for a song...">
                 <button type="submit">Search</button>
                 <button type="button" class="clear-button">Clear</button>
@@ -37,7 +37,7 @@
         <p>Scan this QR code to join the session:</p>
         <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="Session QR Code" class="session-qr-code">
         <p>Or share this link:</p>
-        <input type="text" id="sessionLink" value="{{ url_for('routes.session_view', session_id=session_id, _external=True) }}" readonly>
+        <input type="text" id="sessionLink" value="{{ url_for('sessions.session_view', session_id=session_id, _external=True) }}" readonly>        
         <button onclick="copySessionLink()" class="copy-link-button">Copy Link</button>
     </div>
 </div>
