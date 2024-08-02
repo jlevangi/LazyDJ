@@ -13,6 +13,7 @@
 /* Pages */
 @import 'pages/search.css';
 @import 'pages/queue.css';
+@import 'pages/session-settings.css';
 
 /* Utilities */
 @import 'utilities.css';

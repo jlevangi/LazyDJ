@@ -8,7 +8,7 @@
         <img src="{{ url_for('static', filename='icons/lazydjicon-512x512.png') }}" alt="Lazy DJ Icon">
     </div>
     <h1><a href="javascript:void(0);" id="refreshLink" class="header-link">The Lazy DJ</a></h1>
-    <button id="shareSessionButton" class="new-session-button">Share Session</button>
+    <button id="sessionSettingsButton" class="new-session-button">Session Settings</button>
 </div>
 
 <div class="content-container">
@@ -30,21 +30,35 @@
     </div>
 </div>
 
-<div id="shareModal" class="modal">
+<div id="sessionSettingsModal" class="modal">
     <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Share This Session</h2>
-        <p>Scan this QR code to join the session:</p>
-        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="Session QR Code" class="session-qr-code">
-        <p>Or share this link:</p>
-        <input type="text" id="sessionLink" value="{{ url_for('sessions.session_view', session_id=session_id, _external=True) }}" readonly>        
-        <button onclick="copySessionLink()" class="copy-link-button">Copy Link</button>
+      <span class="close">&times;</span>
+      <h2>Session Settings</h2>
+      <button id="shareSessionButton">Share Session</button>
+      <button id="createPlaylistButton">Create Playlist</button>
+      <button id="sharePlaylistButton" disabled>Share Playlist</button>
+      
+      <div id="sessionLinkContainer" style="display: none;">
+        <h3>Session Link</h3>
+        <div id="sessionQRCode"></div>
+        <input type="text" id="sessionLink" readonly>
+        <button onclick="copySessionLink()">Copy Session Link</button>
+      </div>
+      
+      <div id="playlistLinkContainer" style="display: none;">
+        <h3>Playlist Link</h3>
+        <div id="playlistQRCode"></div>
+        <input type="text" id="playlistLink" readonly>
+        <button onclick="copyPlaylistLink()">Copy Playlist Link</button>
+      </div>
     </div>
-</div>
+  </div>
 
 <div id="notification"></div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module" src="{{ url_for('static', filename='js/session-settings.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% endblock %}

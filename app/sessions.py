@@ -303,3 +303,52 @@ def end_session(session_id):
     except Exception as e:
         logger.error(f"Error ending session {session_id}: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+    
+@bp.route('/create_session_playlist', methods=['POST'])
+def create_session_playlist_route():
+    logger.info("Create session playlist request received")
+    try:
+        # Get the current session ID from the session
+        current_session_id = session.get('current_session_id')
+        if not current_session_id:
+            raise ValueError("No active session found")
+
+        current_session = get_session(current_session_id)
+        if not current_session:
+            raise ValueError("Session not found")
+
+        token_info = json.loads(current_session.owner_token)
+        sp = spotipy.Spotify(auth=token_info['access_token'])
+
+        # Check if a playlist already exists for this session
+        if current_session.playlist_id:
+            logger.info(f"Playlist already exists for session {current_session_id}")
+            return jsonify({
+                "status": "success",
+                "playlist_id": current_session.playlist_id,
+                "playlist_name": current_session.playlist_name,
+                "message": "Playlist already exists for this session"
+            })
+
+        # Create a new playlist
+        playlist_id, playlist_name = create_session_playlist(sp)
+        
+        if not playlist_id or not playlist_name:
+            raise ValueError("Failed to create playlist")
+
+        # Update the session with the new playlist information
+        current_session.playlist_id = playlist_id
+        current_session.playlist_name = playlist_name
+
+        logger.info(f"Playlist created successfully: {playlist_name} (ID: {playlist_id})")
+        return jsonify({
+            "status": "success",
+            "playlist_id": playlist_id,
+            "playlist_name": playlist_name
+        })
+    except Exception as e:
+        logger.error(f"Error creating playlist: {str(e)}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
