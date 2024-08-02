@@ -14,6 +14,7 @@
 @import 'pages/search.css';
 @import 'pages/queue.css';
 @import 'pages/session-settings.css';
+@import 'pages/session-not-found.css';
 
 /* Utilities */
 @import 'utilities.css';
