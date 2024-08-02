@@ -25,7 +25,7 @@
 @media (max-width: 768px) {
     #notification {
         position: fixed;
-        top: 50vh;
+        top: 30vh;
         left: 5%;
         right: 5%;
         width: 90%;
