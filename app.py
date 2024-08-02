@@ -6,6 +6,8 @@ import argparse
 from logging.handlers import RotatingFileHandler
 import os
 from app.sessions import bp as sessions_bp
+from logging.handlers import TimedRotatingFileHandler
+
 
 
 def create_app(config_class=Config):
@@ -21,7 +23,12 @@ def create_app(config_class=Config):
     if not app.debug:
         if not os.path.exists('logs'):
             os.mkdir('logs')
-        file_handler = RotatingFileHandler('logs/lazydj.log', maxBytes=10240, backupCount=10)
+        file_handler = TimedRotatingFileHandler(
+            'logs/lazydj.log',
+            when='midnight',
+            interval=1,
+            backupCount=10
+        )
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
         file_handler.setLevel(logging.INFO)

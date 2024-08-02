@@ -3,6 +3,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app
 from app.models import Session, create_session, get_session, delete_session
 from app.spotify_utils import get_token, get_spotify_oauth
+from app.log_utils import format_debug_output
 import spotipy
 from spotipy.exceptions import SpotifyException
 import qrcode
@@ -19,35 +20,52 @@ def create_session_playlist(sp):
     date_str = datetime.now().strftime("%Y-%m-%d")
     playlist_name = f"LazyDJ - {date_str}"
     user_id = sp.me()['id']
-    logger.info(f"Attempting to create or find playlist: {playlist_name}")
+    logger.info(f"Attempting to create or find playlist: {playlist_name} for user: {user_id}")
 
-    # Check if a playlist with this name already exists
-    playlists = sp.current_user_playlists()
-    existing_playlist = None
-    while playlists:
-        for playlist in playlists['items']:
-            if playlist['name'] == playlist_name:
-                existing_playlist = playlist
-                break
-        if existing_playlist:
-            break
-        if playlists['next']:
-            playlists = sp.next(playlists)
-        else:
-            playlists = None
+    offset = 0
+    limit = 50  # Maximum allowed by Spotify API
+    total_playlists = None
+    playlists_checked = 0
 
-    if existing_playlist:
-        logger.info(f"Found existing playlist: {playlist_name} (ID: {existing_playlist['id']})")
-        return existing_playlist['id'], existing_playlist['name']
-    else:
+    while True:
+        logger.info(f"Fetching playlists: offset={offset}, limit={limit}")
         try:
-            logger.info(f"No existing playlist found. Creating new playlist: {playlist_name}")
-            new_playlist = sp.user_playlist_create(user_id, playlist_name, public=False)
-            logger.info(f"Created new playlist: {playlist_name} (ID: {new_playlist['id']})")
-            return new_playlist['id'], new_playlist['name']
-        except SpotifyException as e:
-            logger.error(f"Error creating playlist: {str(e)}")
-            return None, None
+            playlists = sp.user_playlists(user_id, limit=limit, offset=offset)
+            logger.debug(f"API Response: Total: {playlists['total']}, Items: {len(playlists['items'])}")
+        except Exception as e:
+            logger.error(f"Error fetching playlists: {str(e)}")
+            break
+
+        if total_playlists is None:
+            total_playlists = playlists['total']
+            logger.info(f"Total playlists reported by Spotify: {total_playlists}")
+
+        for playlist in playlists['items']:
+            playlists_checked += 1
+            logger.debug(f"Checking playlist {playlists_checked}/{total_playlists}: {playlist['name']} (ID: {playlist['id']}, Public: {playlist['public']})")
+            if playlist['name'] == playlist_name:
+                logger.info(f"Found existing playlist: {playlist_name} (ID: {playlist['id']}, Public: {playlist['public']})")
+                return playlist['id'], playlist['name']
+
+        if len(playlists['items']) < limit or playlists_checked >= total_playlists:
+            logger.info(f"Checked all {playlists_checked} playlists. No match found.")
+            break
+
+        offset += limit
+        logger.debug(f"Moving to next page. New offset: {offset}")
+
+    # If we've checked all playlists and haven't found a match, create a new one
+    logger.info(f"No existing playlist found. Creating new public playlist: {playlist_name}")
+    try:
+        new_playlist = sp.user_playlist_create(user_id, playlist_name, public=True)
+        logger.info(f"Successfully created new public playlist: {playlist_name} (ID: {new_playlist['id']})")
+        return new_playlist['id'], new_playlist['name']
+    except SpotifyException as e:
+        logger.error(f"Spotify API error creating playlist: {str(e)}")
+        return None, None
+    except Exception as e:
+        logger.error(f"Unexpected error creating playlist: {str(e)}")
+        return None, None
 
 @bp.route('/create_session', methods=['POST'])
 def create_new_session():
@@ -57,19 +75,23 @@ def create_new_session():
         return jsonify({"status": "error", "message": "Not authenticated"}), 401
 
     try:
+        sp = spotipy.Spotify(auth=token_info['access_token'])
+        
+        # First, try to find or create the playlist
+        playlist_id, playlist_name = create_session_playlist(sp)
+        if not playlist_id or not playlist_name:
+            logger.error("Failed to create or find playlist")
+            return jsonify({"status": "error", "message": "Failed to create or find playlist"}), 500
+
+        # Now create the session
         new_session = create_session(json.dumps(token_info))
         session['current_session_id'] = new_session.session_id
         logger.info(f"New session created with ID: {new_session.session_id}")
 
-        # Create playlist for the new session
-        sp = spotipy.Spotify(auth=token_info['access_token'])
-        playlist_id, playlist_name = create_session_playlist(sp)  # Remove new_session.session_id
-        if playlist_id and playlist_name:
-            new_session.playlist_id = playlist_id
-            new_session.playlist_name = playlist_name
-            logger.info(f"Playlist created for session: {playlist_name}")
-        else:
-            logger.warning(f"Failed to create playlist for session {new_session.session_id}")
+        # Associate the playlist with the session
+        new_session.playlist_id = playlist_id
+        new_session.playlist_name = playlist_name
+        logger.info(f"Session {new_session.session_id} associated with playlist: {playlist_name} (ID: {playlist_id})")
  
         redirect_url = url_for('sessions.session_view', 
                                session_id=new_session.session_id, 
@@ -152,6 +174,7 @@ def session_search(session_id):
 
 @bp.route('/<session_id>/queue', methods=['POST'])
 def session_queue(session_id):
+    logger.info(f"Session queue request received for session: {session_id}")
     current_session = get_session(session_id)
     if not current_session:
         logger.warning(f"Session not found: {session_id}")
@@ -161,6 +184,8 @@ def session_queue(session_id):
     track_name = request.form.get('track_name')
     artist_name = request.form.get('artist_name')
 
+    logger.info(f"Attempting to add track to session {session_id}: {track_name} by {artist_name} (URI: {track_uri})")
+
     if not all([track_uri, track_name, artist_name]):
         logger.warning(f"Missing track information for session {session_id}")
         return jsonify({"error": "Missing track information"}), 400
@@ -169,19 +194,54 @@ def session_queue(session_id):
         token_info = json.loads(current_session.owner_token)
         sp = spotipy.Spotify(auth=token_info['access_token'])
         
-        # Add track to Spotify queue
-        sp.add_to_queue(track_uri)
+        # Log initial state
+        initial_state = {
+            'session_id': session_id,
+            'playlist_id': current_session.playlist_id,
+            'playlist_name': current_session.playlist_name,
+            'current_queue': current_session.get_queue()
+        }
+        logger.debug(f"Initial state:\n{format_debug_output(initial_state)}")
         
-        # Add track to session queue and playlist
+        # Add track to Spotify queue
+        logger.info(f"Adding track to Spotify queue: {track_name}")
+        sp.add_to_queue(track_uri)
+        logger.info(f"Successfully added to Spotify queue: {track_name}")
+        
+        # Add track to session queue
         track = {
             'uri': track_uri,
             'name': track_name,
             'artists': artist_name
         }
         current_session.add_to_queue(track)
+        logger.info(f"Added track to session queue: {track_name}")
+        
+        # Add track to playlist if playlist exists
+        playlist_addition_success = False
+        if current_session.playlist_id:
+            logger.info(f"Attempting to add track to playlist: {current_session.playlist_id}")
+            try:
+                sp.user_playlist_add_tracks(sp.me()['id'], current_session.playlist_id, [track_uri])
+                logger.info(f"Successfully added track {track_name} to playlist {current_session.playlist_id}")
+                playlist_addition_success = True
+            except Exception as playlist_error:
+                logger.error(f"Error adding track to playlist: {str(playlist_error)}")
+        else:
+            logger.warning(f"No playlist associated with session {session_id}")
+        
+        # Log final state
+        final_state = {
+            'session_id': session_id,
+            'playlist_id': current_session.playlist_id,
+            'playlist_name': current_session.playlist_name,
+            'current_queue': current_session.get_queue(),
+            'added_to_playlist': playlist_addition_success
+        }
+        logger.debug(f"Final state:\n{format_debug_output(final_state)}")
         
         message = "Track added to session queue"
-        if current_session.playlist_id:
+        if playlist_addition_success:
             message += " and playlist"
         
         logger.info(f"{message}: {track_name} in session {session_id}")
@@ -189,7 +249,7 @@ def session_queue(session_id):
             "status": "success", 
             "message": message,
             "track": track,
-            "added_to_playlist": current_session.playlist_id is not None,
+            "added_to_playlist": playlist_addition_success,
             "playlist_name": current_session.playlist_name
         })
     except SpotifyException as e:
@@ -198,7 +258,7 @@ def session_queue(session_id):
     except Exception as e:
         logger.error(f"Error adding track to session {session_id}: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
+    
 @bp.route('/session/<session_id>/current_queue')
 def session_current_queue(session_id):
     current_session = get_session(session_id)

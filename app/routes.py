@@ -183,16 +183,17 @@ def current_queue():
 
         user_queue = []
         radio_queue = []
-        for track in queue_info['queue']:
-            track_info = {
-                'name': track['name'],
-                'artists': ', '.join([artist['name'] for artist in track['artists']]),
-                'uri': track['uri']
-            }
-            if track['uri'] in recent_tracks:
-                user_queue.append(track_info)
-            else:
-                radio_queue.append(track_info)
+        if queue_info and 'queue' in queue_info:
+            for track in queue_info['queue']:
+                track_info = {
+                    'name': track['name'],
+                    'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                    'uri': track['uri']
+                }
+                if track['uri'] in recent_tracks:
+                    user_queue.append(track_info)
+                else:
+                    radio_queue.append(track_info)
 
         debug_data = {
             'current_track': current_track,
@@ -200,13 +201,13 @@ def current_queue():
             'radio_queue': radio_queue
         }
         formatted_output = format_debug_output(debug_data)
-        current_app.logger.debug(f"Queue Information:\n{formatted_output}")
+        logger.debug(f"Queue Information:\n{formatted_output}")
 
         return jsonify({
             'current_track': {
                 'name': current_track['item']['name'],
                 'artists': ', '.join([artist['name'] for artist in current_track['item']['artists']])
-            } if current_track and current_track['is_playing'] else None,
+            } if current_track and current_track.get('item') else None,
             'user_queue': user_queue,
             'radio_queue': radio_queue[:5]  # Limit to first 5 tracks
         })

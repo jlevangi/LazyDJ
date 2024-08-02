@@ -18,7 +18,7 @@ def get_spotify_oauth():
 def get_token(token_info=None):
     if not token_info:
         token_info = session.get('token_info')
-    logger.debug(f"Retrieved token_info: {token_info}")
+    logger.debug("Token info retrieved from session")
 
     if not token_info:
         logger.warning("No token_info found")
@@ -31,7 +31,6 @@ def get_token(token_info=None):
             logger.info("Successfully parsed token_info from string to dictionary")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse token_info string as JSON: {e}")
-            logger.debug(f"Token info content: {token_info}")
             return None
     elif not isinstance(token_info, dict):
         logger.error(f"Unexpected token_info type: {type(token_info)}")
@@ -51,6 +50,7 @@ def get_token(token_info=None):
             logger.error(f"Error refreshing token: {e}")
             return None
 
+    logger.debug("Token info is valid and up to date")
     return token_info
 
 def get_spotify_client():

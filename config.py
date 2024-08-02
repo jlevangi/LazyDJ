@@ -21,7 +21,7 @@ class Config:
     TIP_QR_CODE_PATH = '/static/tip-qr.png'
 
     # Spotify API scope
-    SPOTIFY_SCOPE = 'user-modify-playback-state user-read-playback-state playlist-modify-private'
+    SPOTIFY_SCOPE = 'user-modify-playback-state user-read-playback-state playlist-modify-private playlist-modify-public playlist-read-private playlist-read-collaborative'
 
     # Debug mode (set to False in production)
     DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() in ('true', '1', 't')

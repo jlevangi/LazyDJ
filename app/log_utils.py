@@ -9,12 +9,13 @@ def format_track_info(track):
 def format_queue(queue):
     return [f"{track['name']} by {track['artists']}" for track in queue]
 
-from termcolor import colored
-
 def format_debug_output(data):
     output = []
     if 'current_track' in data:
-        output.append(colored(f"Current Track: {format_track_info(data['current_track']['item'])}", 'green'))
+        if data['current_track'] and 'item' in data['current_track']:
+            output.append(colored(f"Current Track: {format_track_info(data['current_track']['item'])}", 'green'))
+        else:
+            output.append(colored("Current Track: No track playing", 'yellow'))
     
     if 'user_queue' in data:
         output.append(colored("User Queue:", 'yellow'))
@@ -27,4 +28,3 @@ def format_debug_output(data):
             output.append(f"  - {track}")
     
     return "\n".join(output)
-

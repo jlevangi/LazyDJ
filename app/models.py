@@ -121,40 +121,10 @@ class Session:
 # In-memory store for active sessions
 active_sessions = {}
 
-def create_session_playlist(sp):
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    playlist_name = f"LazyDJ - {date_str}"
-    user_id = sp.me()['id']
-    logger.info(f"Attempting to create or find playlist: {playlist_name}")
-
-    # Check if a playlist with this name already exists
-    playlists = sp.user_playlists(user_id)
-    existing_playlist = next((playlist for playlist in playlists['items'] if playlist['name'] == playlist_name), None)
-
-    if existing_playlist:
-        logger.info(f"Found existing playlist: {playlist_name} (ID: {existing_playlist['id']})")
-        return existing_playlist['id'], existing_playlist['name']
-    else:
-        try:
-            logger.info(f"No existing playlist found. Creating new playlist: {playlist_name}")
-            new_playlist = sp.user_playlist_create(user_id, playlist_name, public=False)
-            logger.info(f"Created new playlist: {playlist_name} (ID: {new_playlist['id']})")
-            return new_playlist['id'], new_playlist['name']
-        except spotipy.exceptions.SpotifyException as e:
-            logger.error(f"Error creating playlist: {str(e)}")
-            return None, None
 
 def create_session(owner_token):
     session = Session(owner_token)
-    token_info = json.loads(owner_token)
-    sp = spotipy.Spotify(auth=token_info['access_token'])
-    playlist_id, playlist_name = create_session_playlist(sp)
-    if playlist_id and playlist_name:
-        session.playlist_id = playlist_id
-        session.playlist_name = playlist_name
-        logger.info(f"Session {session.session_id} associated with playlist: {playlist_name} (ID: {playlist_id})")
-    else:
-        logger.warning(f"Failed to create or find playlist for session {session.session_id}")
+    logger.info(f"Created new session: {session.session_id}")
     active_sessions[session.session_id] = session
     return session
 
