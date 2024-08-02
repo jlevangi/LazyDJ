@@ -71,11 +71,11 @@
 }
 
 .qr-code-container {
-    width: 60vw;
-    height: 60vw;
+    width: 75vw;
+    height: 75vw;
     max-width: 250px;
     max-height: 250px;
-    margin: 10px auto;
+    margin: px auto;
 }
 
 .qr-code-label {
@@ -134,10 +134,10 @@
     }
 
     .qr-code-container {
-        width: 50vw;
-        height: 50vw;
-        max-width: 200px;
-        max-height: 200px;
+        width: 80vw;
+        height: 80vw;
+        max-width: 400px;
+        max-height: 400px;
     }
 
     .qr-code-label {
