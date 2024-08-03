@@ -28,7 +28,7 @@ def get_token(token_info=None):
     if isinstance(token_info, str):
         try:
             token_info = json.loads(token_info)
-            logger.info("Successfully parsed token_info from string to dictionary")
+            logger.debug("Successfully parsed token_info from string to dictionary")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse token_info string as JSON: {e}")
             return None
