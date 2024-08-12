@@ -32,25 +32,25 @@
 
 <div id="sessionSettingsModal" class="modal">
     <div class="modal-content">
+        <h2 class="session-settings-header">Session Settings</h2>
         <div class="button-container">
             <button id="shareSessionButton">Share Session</button>
-            <button id="createPlaylistButton">Create Session Playlist</button>
+            <button id="createPlaylistButton">Create Playlist</button>
+            <button id="endSessionButton">End Session</button>
         </div>
         
         <div id="sessionLinkContainer" style="display: none;">
             <div class="qr-code-label">Scan to share session</div>
             <div id="sessionQRCode" class="qr-code-container"></div>
-            <div class="spacer"></div>
             <button onclick="copySessionLink()" class="copy-link-button">Copy Session Link</button>
         </div>
         
         <div id="playlistLinkContainer" style="display: none;">
             <div class="qr-code-label">Scan to share playlist</div>
             <div id="playlistQRCode" class="qr-code-container"></div>
-            <div class="spacer"></div>
             <button onclick="copyPlaylistLink()" class="copy-link-button">Copy Playlist Link</button>
         </div>
-        
+
         <div class="close-button-container">
             <button id="closeSessionSettingsButton" class="close-button">Close</button>
         </div>

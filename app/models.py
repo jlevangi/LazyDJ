@@ -116,6 +116,8 @@ def delete_session(session_id):
     if session_id in active_sessions:
         del active_sessions[session_id]
         logger.info(f"Deleted session: {session_id}")
+    else:
+        logger.warning(f"Attempted to delete non-existent session: {session_id}")
 
 def add_track_to_session(session, track_uri, track_name, artist_name):
     logger.info(f"Attempting to add track to session {session.session_id}: {track_name} by {artist_name} (URI: {track_uri})")

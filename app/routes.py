@@ -2,7 +2,7 @@
 
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info, get_spotify_client
-from app.models import add_recent_track, Track, add_track_to_session, get_session
+from app.models import add_recent_track, Track, add_track_to_session, get_session, delete_session, get_session
 from app.admin import check_if_admin
 from app.sessions import create_new_session
 from app.sessions import bp as sessions_bp
@@ -269,3 +269,20 @@ def send_static(path):
 @bp.route('/create_session', methods=['POST'])
 def route_create_session():
     return create_new_session()
+
+@bp.route('/end_session', methods=['POST'])
+def end_session():
+    session_id = session.get('current_session_id')
+    if session_id:
+        try:
+            delete_session(session_id)
+            session.pop('current_session_id', None)
+            session.pop('token_info', None)
+            logger.info(f"Session ended: {session_id}")
+            return jsonify({"status": "success", "message": "Session ended successfully"})
+        except Exception as e:
+            logger.error(f"Error ending session {session_id}: {str(e)}")
+            return jsonify({"status": "error", "message": f"Failed to end session: {str(e)}"}), 500
+    else:
+        logger.warning("Attempt to end session when no active session found")
+        return jsonify({"status": "error", "message": "No active session found"}), 400
