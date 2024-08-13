@@ -1,5 +1,5 @@
-/* Base styles for the modal */
-.modal {
+/* Session Settings Modal Styles */
+#sessionSettingsModal {
     display: none;
     position: fixed;
     z-index: 1000;
@@ -13,7 +13,7 @@
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-.modal.show {
+#sessionSettingsModal.show {
     opacity: 1;
     visibility: visible;
 }
@@ -30,7 +30,6 @@
     overflow-y: auto;
 }
 
-/* Session Settings Header */
 .session-settings-header {
     color: #1DB954;
     font-size: 24px;
@@ -38,13 +37,10 @@
     text-align: center;
 }
 
-/* Button container */
 .button-container {
     display: flex;
-    flex-wrap: wrap;
     justify-content: space-between;
     margin-bottom: 20px;
-    width: 100%;
 }
 
 #sessionSettingsModal button {
@@ -52,11 +48,10 @@
     color: white;
     border: none;
     padding: 12px;
-    margin: 5px 0;
     border-radius: 25px;
     cursor: pointer;
     font-size: 16px;
-    width: calc(33% - 5px);
+    width: 30%;
     transition: background-color 0.3s ease;
 }
 
@@ -69,13 +64,11 @@
     cursor: not-allowed;
 }
 
-/* QR code containers */
 #sessionLinkContainer, #playlistLinkContainer {
     display: none;
     flex-direction: column;
     align-items: center;
     margin-top: 20px;
-    width: 100%;
 }
 
 .qr-code-container {
@@ -94,16 +87,40 @@
     margin-bottom: 10px;
 }
 
-.copy-link-button {
-    width: 100%;
-    max-width: 250px;
+#sessionSettingsModal button {
+    background-color: #1DB954;
+    color: white;
+    border: none;
     padding: 12px;
+    border-radius: 25px;
+    cursor: pointer;
     font-size: 16px;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    transition: background-color 0.3s ease;
 }
 
-/* Close button container */
+/* Styles for the top buttons */
+#sessionSettingsModal .button-container button {
+    width: 30%;
+}
+
+#sessionSettingsModal button:hover {
+    background-color: #1ED760;
+}
+
+#sessionSettingsModal button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+/* Specific styles for the copy link button */
+#sessionSettingsModal .copy-link-button {
+    width: 80%;
+    max-width: none;
+    padding: 15px 20px;
+    font-size: 14px;
+    display: block;
+}
+
 .close-button-container {
     margin-top: auto;
     padding-top: 20px;
@@ -118,14 +135,14 @@
 @media (max-width: 768px) {
     .modal-content {
         height: 98vh;
-        margin: 2vh auto;
+        margin: 1vh auto;
         border: 3px solid #1DB954;
         border-radius: 15px;
+        padding: 15px;
     }
 
     .session-settings-header {
         font-size: 22px;
-        margin-bottom: 15px;
     }
 
     #sessionSettingsModal button {
@@ -134,48 +151,9 @@
     }
 
     .qr-code-container {
-        width: 150px;
-        height: 150px;
-    }
-
-    .qr-code-label {
-        font-size: 16px;
-    }
-
-    .copy-link-button {
-        padding: 10px;
-        font-size: 14px;
-    }
-}
-
-/* Smaller screens */
-@media (max-height: 600px) {
-    .modal-content {
-        height: 90vh;
-        margin: 5vh auto;
-    }
-
-    .session-settings-header {
-        font-size: 20px;
-        margin-bottom: 10px;
-    }
-
-    #sessionSettingsModal button {
-        padding: 8px;
-        font-size: 12px;
-    }
-
-    .qr-code-container {
-        width: 120px;
-        height: 120px;
-    }
-
-    .qr-code-label {
-        font-size: 14px;
-    }
-
-    .copy-link-button {
-        padding: 8px;
-        font-size: 12px;
+        width: 80vw;
+        height: 80vw;
+        max-width: 300px;
+        max-height: 300px;
     }
 }

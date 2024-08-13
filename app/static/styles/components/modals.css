@@ -80,24 +80,6 @@
     box-sizing: border-box;
 }
 
-/* Copy link button - if not using the general button styles */
-.copy-link-button {
-    background-color: #1DB954;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 16px;
-    display: block;
-    margin: 15px auto 0;
-    transition: background-color 0.3s ease;
-}
-
-.copy-link-button:hover {
-    background-color: #1ED760;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .modal-content {
@@ -108,11 +90,6 @@
 
     #sessionLink {
         font-size: 12px;
-    }
-
-    .copy-link-button {
-        font-size: 14px;
-        padding: 10px 16px;
     }
 
     .modal {
