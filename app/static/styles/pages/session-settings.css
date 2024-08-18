@@ -150,6 +150,23 @@
         padding: 10px;
     }
 
+    #sessionSettingsModal .modal-content {
+        max-height: 85vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #sessionSettingsModal .modal-body {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    #sessionSettingsModal .modal-footer {
+        margin-top: auto;
+    
+    }
+        
     .qr-code-container {
         width: 80vw;
         height: 80vw;
