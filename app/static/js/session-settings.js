@@ -21,9 +21,13 @@ export function setupSessionSettingsListeners() {
     closeBtn.addEventListener('click', closeSessionSettingsModal);
     shareSessionButton.addEventListener('click', handleShareSession);
     createPlaylistButton.addEventListener('click', handleCreateOrSharePlaylist);
+    
 
     // Check if a playlist has already been created for this session
     checkExistingPlaylist();
+
+    setupEndSessionButton();
+
 }
 
 function checkExistingPlaylist() {
@@ -151,6 +155,36 @@ function copyToClipboard(text) {
         console.error('Failed to copy: ', err);
         showNotification("Failed to copy link", "error");
     });
+}
+
+function setupEndSessionButton() {
+    const endSessionButton = document.getElementById('endSessionButton');
+    if (endSessionButton) {
+        endSessionButton.addEventListener('click', handleEndSession);
+    }
+}
+
+function handleEndSession() {
+    if (confirm('Are you sure you want to end this session?')) {
+        fetch('/end_session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = '/search';
+            } else {
+                showNotification('Failed to end session: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error ending session:', error);
+            showNotification('Error ending session', 'error');
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', setupSessionSettingsListeners);

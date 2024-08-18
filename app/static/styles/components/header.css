@@ -2,12 +2,13 @@
 .header-container {
     background-color: #1DB954;
     color: white;
-    padding: 4px;
+    padding: 8px 16px;
     width: 100%;
     position: sticky;
     top: 0;
     z-index: 1000;
     display: flex;
+    flex-wrap: nowrap;
     justify-content: space-between;
     align-items: center;
     box-sizing: border-box;
@@ -24,11 +25,13 @@
 
 /* Icon container */
 .icon-container {
-    width: 50px;
-    height: 50px;
+    width: 32px;
+    height: 32px;
     cursor: pointer;
     flex-shrink: 0;
     margin-right: 10px;
+    display: flex;
+    align-items: center;
 }
 
 .icon-container img {
@@ -40,11 +43,17 @@
 /* Header title */
 .header-container h1 {
     margin: 0;
-    padding: 10px;
+    padding: 0;
     color: #FFFFFF;
     font-weight: bold;
     text-align: center;
     flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    height: 32px; /* Match height with icon */
 }
 
 /* Header link */
@@ -53,16 +62,19 @@
     color: white;
     text-decoration: none;
     cursor: pointer;
-    border-radius: 25px;
-    font-size: 30px;
+    border-radius: 16px;
+    font-size: 20px;
     font-weight: bold;
-    padding: 10px 30px;
+    padding: 4px 12px;
     border: none;
     transition: background-color 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
 }
 
 .header-link:hover {
-    background-color: #1ED760;
+    background-color: rgba(255, 255, 255, 0.2);
     text-decoration: none;
 }
 
@@ -74,13 +86,16 @@
     border: none;
     text-decoration: none;
     cursor: pointer;
-    border-radius: 25px;
-    font-size: 18px;
-    padding: 10px 20px;
+    border-radius: 16px;
+    font-size: 14px;
+    padding: 0 12px;
     transition: background-color 0.3s ease;
     white-space: nowrap;
     flex-shrink: 0;
     margin-left: 10px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
 }
 
 .new-session-button:hover,
@@ -91,44 +106,53 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .header-container {
-        padding: 8px;
-        flex-wrap: nowrap;
+        padding: 6px 12px;
     }
 
-    .icon-container {
-        width: 40px;
-        height: 40px;
-    }
-
-    .header-container h1 {
-        font-size: 24px;
-        padding: 5px;
-    }
-
-    .new-session-button,
-    .share-session-button {
-        font-size: 14px;
-        padding: 8px 12px;
-    }
-
-    .header-link {
-        font-size: 24px;
-        padding: 5px 15px;
-    }
-
-    .header-link:hover {
-        background-color: transparent;
-    }
-}
-
-@media (max-width: 480px) {
     .header-container h1 {
         font-size: 18px;
+        flex-basis: calc(100% - 100px);
+        text-align: left;
     }
 
     .new-session-button,
     .share-session-button {
         font-size: 12px;
-        padding: 6px 10px;
+        padding: 0 8px;
+    }
+
+    .header-link {
+        font-size: 18px;
+        padding: 4px 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-container {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 6px;
+    }
+
+    .header-container h1 {
+        font-size: 16px;
+        flex-basis: 100%;
+        text-align: center;
+        margin-bottom: 4px;
+        justify-content: center;
+    }
+
+    .new-session-button,
+    .share-session-button {
+        font-size: 12px;
+        padding: 0 8px;
+        margin: 2px;
+        height: 28px;
+    }
+
+    .icon-container {
+        margin-right: 5px;
+        width: 28px;
+        height: 28px;
     }
 }

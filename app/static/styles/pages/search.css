@@ -67,7 +67,7 @@
     flex-direction: column;
     gap: 10px;
     overflow-y: auto;
-    max-height: calc(100vh - 200px); /* Adjust based on your layout */
+    max-height: 80vh; /* Adjust based on your layout */
 }
 
 .result-item {
