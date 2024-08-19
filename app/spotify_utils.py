@@ -28,7 +28,7 @@ def get_token(token_info=None):
     if isinstance(token_info, str):
         try:
             token_info = json.loads(token_info)
-            logger.debug("Successfully parsed token_info from string to dictionary")
+            logger.info("Successfully parsed token_info from string to dictionary")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse token_info string as JSON: {e}")
             return None
@@ -46,13 +46,18 @@ def get_token(token_info=None):
             token_info = sp_oauth.refresh_access_token(token_info['refresh_token'])
             session['token_info'] = json.dumps(token_info)
             logger.info("Token refreshed and stored in session")
+        except spotipy.oauth2.SpotifyOauthError as e:
+            logger.error(f"Error refreshing token: {e}")
+            if 'invalid_grant' in str(e):
+                session.clear()
+                return None
         except Exception as e:
             logger.error(f"Error refreshing token: {e}")
             return None
 
     logger.debug("Token info is valid and up to date")
     return token_info
-
+    
 def get_spotify_client():
     token_info = get_token()
     if not token_info:

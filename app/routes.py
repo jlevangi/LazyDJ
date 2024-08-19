@@ -55,6 +55,12 @@ def callback():
         logger.info("Token info stored in session")
         logger.debug(f"Token info: {json.dumps(token_info)}")
         return redirect(url_for('routes.search'))
+    except spotipy.oauth2.SpotifyOauthError as e:
+        logger.error(f"Spotify OAuth Error: {e}")
+        if 'invalid_grant' in str(e):
+            # Clear the session and redirect to login
+            session.clear()
+            return redirect(url_for('routes.login'))
     except Exception as e:
         logger.error(f"Error in callback: {e}")
         return jsonify({"error": "Authentication failed"}), 400
