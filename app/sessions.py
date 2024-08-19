@@ -125,6 +125,8 @@ def session_view(session_id):
     img.save(buffered)
     qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
 
+    # Store the session ID and owner's token in the user's session
+    session['current_session_id'] = session_id
     session['token_info'] = current_session.owner_token
 
     return render_template('session.html', session_id=session_id, qr_code_base64=qr_code_base64)
@@ -134,6 +136,10 @@ def get_session_token(session_id):
     current_session = get_session(session_id)
     if not current_session:
         return jsonify({"error": "Session not found"}), 404
+
+    # Store the session ID and owner's token in the user's session
+    session['current_session_id'] = session_id
+    session['token_info'] = current_session.owner_token
 
     return jsonify({"token": current_session.owner_token})
 
