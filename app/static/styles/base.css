@@ -1,4 +1,4 @@
-/* base.css */
+/* Reset styles */
 body {
     font-family: Arial, sans-serif;
     background-color: #121212;
@@ -11,7 +11,7 @@ body {
     overflow-x: hidden;
 }
 
-/* General styles */
+/* Typography */
 h1, h2, h3, h4, h5, h6 {
     margin-top: 0;
 }
@@ -23,10 +23,6 @@ a {
 
 a:hover {
     text-decoration: underline;
-}
-
-button {
-    cursor: pointer;
 }
 
 /* Utility classes */

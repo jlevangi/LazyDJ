@@ -8,13 +8,13 @@
         <img src="{{ url_for('static', filename='icons/lazydjicon-512x512.png') }}" alt="Lazy DJ Icon">
     </div>
     <h1><a href="javascript:void(0);" id="refreshLink" class="header-link">The Lazy DJ</a></h1>
-    <button id="shareSessionButton" class="new-session-button">Share Session</button>
+    <button id="sessionSettingsButton" class="new-session-button">Session Settings</button>
 </div>
 
 <div class="content-container">
     <div class="main-content">
         <div class="search-bar-container">
-            <form class="search-bar" action="{{ url_for('routes.session_search', session_id=session_id) }}" method="get">
+            <form class="search-bar" action="{{ url_for('sessions.session_search', session_id=session_id) }}" method="get">
                 <input type="text" name="query" placeholder="Search for a song...">
                 <button type="submit">Search</button>
                 <button type="button" class="clear-button">Clear</button>
@@ -30,21 +30,38 @@
     </div>
 </div>
 
-<div id="shareModal" class="modal">
+<div id="sessionSettingsModal" class="modal">
     <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Share This Session</h2>
-        <p>Scan this QR code to join the session:</p>
-        <img src="data:image/png;base64,{{ qr_code_base64 }}" alt="Session QR Code" class="session-qr-code">
-        <p>Or share this link:</p>
-        <input type="text" id="sessionLink" value="{{ url_for('routes.session_view', session_id=session_id, _external=True) }}" readonly>
-        <button onclick="copySessionLink()" class="copy-link-button">Copy Link</button>
+        <h2 class="session-settings-header">Session Settings</h2>
+        <div class="button-container">
+            <button id="shareSessionButton">Share Session</button>
+            <button id="createPlaylistButton">Create Playlist</button>
+            <button id="endSessionButton">End Session</button>
+        </div>
+        
+        <div id="sessionLinkContainer" style="display: none;">
+            <div class="qr-code-label">Scan to share session</div>
+            <div id="sessionQRCode" class="qr-code-container"></div>
+            <button onclick="copySessionLink()" class="copy-link-button">Copy Session Link</button>
+        </div>
+        
+        <div id="playlistLinkContainer" style="display: none;">
+            <div class="qr-code-label">Scan to share playlist</div>
+            <div id="playlistQRCode" class="qr-code-container"></div>
+            <button onclick="copyPlaylistLink()" class="copy-link-button">Copy Playlist Link</button>
+        </div>
+
+        <div class="close-button-container">
+            <button id="closeSessionSettingsButton" class="close-button">Close</button>
+        </div>
     </div>
 </div>
 
-<div id="notification"></div>
+<div id="notification" class="notification"></div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module" src="{{ url_for('static', filename='js/session-settings.js') }}"></script>
 <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% endblock %}

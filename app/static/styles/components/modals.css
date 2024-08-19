@@ -1,0 +1,112 @@
+/* Modal overlay */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+}
+
+.modal-content {
+    background-color: #282828;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    transform: translateY(-50px);
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Close button */
+.close {
+    color: #1DB954;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close:hover,
+.close:focus {
+    color: #1ED760;
+    text-decoration: none;
+}
+
+/* Modal header */
+.modal-content h2 {
+    color: #1DB954;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+/* QR code styles */
+.session-qr-code {
+    display: block;
+    margin: 20px auto;
+    max-width: 200px;
+    height: auto;
+    border: 2px solid #1DB954;
+    border-radius: 10px;
+}
+
+/* Session link input */
+#sessionLink {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #1DB954;
+    border-radius: 5px;
+    background-color: #3E3E3E;
+    color: #FFFFFF;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 20% auto;
+        padding: 20px;
+    }
+
+    #sessionLink {
+        font-size: 12px;
+    }
+
+    .modal {
+        display: none; /* Hidden by default */
+    }
+    
+    .modal.show {
+        display: block; /* Shown when 'show' class is added */
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 30% auto;
+    }
+
+    .session-qr-code {
+        max-width: 150px;
+    }
+}

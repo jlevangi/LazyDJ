@@ -1,36 +1,39 @@
-/* main.css */
-@import 'base.css';
-@import 'header.css';
-@import 'content.css';
-@import 'search.css';
-@import 'queue.css';
-@import 'modal.css';
-
-body {
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Mobile-specific styles */
+/* Base mobile styles (up to 768px) */
 @media (max-width: 768px) {
+    /* Header styles */
     .header-container {
-        padding: 5px;
+        padding: 8px;
+        flex-wrap: nowrap;
     }
 
     .icon-container {
         width: 40px;
         height: 40px;
-        left: 5px;
     }
 
-    h1 {
-        padding: 10px 50px;
-        font-size: 20px;
+    .header-container h1 {
+        font-size: 24px;
+        padding: 5px;
+        flex-grow: 1;
+        text-align: center;
     }
 
-    .tip-button {
-        display: none !important;
+    .new-session-button,
+    .share-session-button {
+        font-size: 16px;
+        padding: 8px 12px;
     }
 
+    .header-link {
+        font-size: 24px;
+        padding: 5px 15px;
+    }
+
+    .header-link:hover {
+        background-color: transparent;
+    }
+
+    /* Content layout */
     .content-container {
         flex-direction: column;
         padding: 10px;
@@ -43,46 +46,35 @@ body {
         margin-bottom: 20px;
         overflow-y: auto;
         flex: 1;
-        padding-bottom: 10vh;
     }
 
-    /* Search bar and results styles */
+    /* Search bar */
     .search-bar {
+        display: flex;
         flex-wrap: wrap;
-        border-radius: 5px;
-        overflow: hidden; /* This ensures child elements don't overflow the rounded corners */
+        gap: 10px;
     }
 
     .search-bar input[type="text"] {
-        flex: 1 0 100%;
-        margin-bottom: 10px;
+        width: 100%;
+        padding: 18px;
         border-radius: 5px;
+        font-size: 20px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
     }
 
-    .search-bar button[type="submit"],
-    .search-bar .clear-button {
+    .search-bar button {
         flex: 1;
+        padding: 10px;
+        border: none;
         border-radius: 5px;
-        margin: 0 5px;
+        font-size: 16px;
+        cursor: pointer;
     }
 
-    .search-bar button:first-of-type {
-        margin-left: 0;
-        border-top-left-radius: 5px;
-        border-bottom-left-radius: 5px;
-    }
-
-    .search-bar button:last-of-type {
-        margin-right: 0;
-        border-top-right-radius: 5px;
-        border-bottom-right-radius: 5px;
-    }
-
-    /* Ensure bottom corners of input are rounded */
-    .search-bar input[type="text"] {
-        border-radius: 5px;
-    }
-    
+    /* Search results */
     .result-item {
         display: flex;
         align-items: center;
@@ -111,11 +103,7 @@ body {
         white-space: nowrap;
     }
 
-    .results {
-        padding-bottom: 0px;
-    }
-
-    /* Updated now playing bar styles */
+    /* Queue container */
     .queue-container {
         order: 2;
         width: 100%;
@@ -134,8 +122,8 @@ body {
     }
 
     .queue-container.expanded {
-        max-height: 50vh;
-        background-color: #282828;
+        max-height: 80vh;
+        background-color: #1b1b1b;
     }
 
     .now-playing-bar {
@@ -165,18 +153,22 @@ body {
 
     .current-track-info {
         font-size: 14px;
+        margin-top: 5px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
     .expand-button {
-        font-size: 24px;
-        padding: 10px;
-        transition: transform 0.3s ease-in-out;
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 12px solid #ffffff;
+        transition: transform 0.3s ease;
     }
 
-    .queue-container.expanded .expand-button {
+    .expand-button.expanded {
         transform: rotate(180deg);
     }
 
@@ -195,24 +187,32 @@ body {
         padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
     }
 
+    .queue-content h3 {
+        font-size: 18px;
+        margin-top: 15px;
+        margin-bottom: 10px;
+        color: #1DB954;
+    }
+
     .queue-item {
-        padding: 12px 10px;
-        margin: 8px 0;
-        border-bottom: 1px solid #3a3a3a;
+        background-color: #3E3E3E;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
         font-size: 14px;
-        line-height: 1.4;
     }
 
     .queue-item:last-child {
-        border-bottom: none;
+        margin-bottom: 0;
     }
 
-    /* Other mobile-specific styles */
-    #notification {
-        font-size: 18px;
-        padding: 20px 30px;
+    .more-tracks {
+        text-align: center;
+        color: #B3B3B3;
+        font-style: italic;
     }
 
+    /* Modal styles */
     .modal-content {
         width: 90%;
         margin: 10% auto;
@@ -222,29 +222,16 @@ body {
     .tip-qr-code {
         max-width: 150px;
     }
-
-    .header-link {
-        font-size: 24px;
-        padding: 5px 15px;
-    }
-
-    .header-link:hover {
-        background-color: transparent;
-    }
-
-    .main-content {
-        padding-bottom: calc(70px + env(safe-area-inset-bottom));
-    }
 }
 
-
+/* Smaller mobile devices (up to 480px) */
 @media (max-width: 480px) {
     .header-container h1 {
         font-size: 18px;
     }
 
     .new-session-button {
-        font-size: 12px;
+        font-size: 16px;
         padding: 6px 10px;
     }
 
@@ -278,6 +265,7 @@ body {
     }
 }
 
+/* Safe area inset padding for notched devices */
 @supports (padding: max(0px)) {
     @media (max-width: 768px) {
         .queue-container {
@@ -292,8 +280,13 @@ body {
             padding-bottom: max(calc(env(safe-area-inset-bottom) + 20px), 40px);
         }
 
+        .content-container {
+            padding-bottom: max(calc(70px + env(safe-area-inset-bottom)), 90px);
+        }
+
         .main-content {
             padding-bottom: max(calc(70px + env(safe-area-inset-bottom)), 90px);
         }
     }
 }
+
