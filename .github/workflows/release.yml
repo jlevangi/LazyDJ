@@ -34,14 +34,12 @@ jobs:
           echo "New version: $new_version"
 
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ steps.next_version.outputs.NEW_VERSION }}
-          release_name: Release ${{ steps.next_version.outputs.NEW_VERSION }}
-          body: |
-            Auto-generated release for version ${{ steps.next_version.outputs.NEW_VERSION }}.
-          draft: false
-          prerelease: false
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          NEW_VERSION: ${{ steps.next_version.outputs.NEW_VERSION }}
+        run: |
+          gh release create "$NEW_VERSION" \
+            --title "Release $NEW_VERSION" \
+            --notes "Auto-generated release for version $NEW_VERSION" \
+            --target ${{ github.sha }}
+
