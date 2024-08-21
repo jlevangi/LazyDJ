@@ -11,7 +11,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all tags and branches
 
       - name: Set up Git
         run: |
@@ -19,15 +21,27 @@ jobs:
           git config --global user.email "actions@github.com"
 
       - name: Determine Next Version
-        run: |
-          chmod +x ./scripts/increment_version.sh
-          ./scripts/increment_version.sh
         id: next_version
+        run: |
+          # Get the latest tag
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          
+          # Extract the version numbers
+          IFS='.' read -ra VERSION_PARTS <<< "${latest_tag#v}"
+          
+          # Increment the patch version
+          VERSION_PARTS[2]=$((VERSION_PARTS[2] + 1))
+          
+          # Join the version parts back together
+          new_version="v${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
+          
+          echo "NEW_VERSION=$new_version" >> $GITHUB_ENV
+          echo "New version: $new_version"
 
       - name: Create Tag
         run: |
-          git tag ${{ env.new_version }}
-          git push origin ${{ env.new_version }}
+          git tag ${{ env.NEW_VERSION }}
+          git push origin ${{ env.NEW_VERSION }}
 
       - name: Create Release
         id: create_release
@@ -35,19 +49,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.new_version }}
-          release_name: Release ${{ env.new_version }}
+          tag_name: ${{ env.NEW_VERSION }}
+          release_name: Release ${{ env.NEW_VERSION }}
           body: |
-            Auto-generated release for version ${{ env.new_version }}.
+            Auto-generated release for version ${{ env.NEW_VERSION }}.
           draft: false
           prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./path-to-your-asset
-          asset_name: your-asset-name
-          asset_content_type: application/zip
