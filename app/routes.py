@@ -2,7 +2,7 @@
 
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info, get_spotify_client
-from app.models import add_recent_track, Track, add_track_to_session, get_session, delete_session, get_session
+from app.models import add_recent_track, Track, add_track_to_session, get_session, delete_session
 from app.admin import check_if_admin
 from app.sessions import create_new_session
 from app.sessions import bp as sessions_bp
@@ -125,7 +125,7 @@ def queue():
     cooldown_period = 1200  # 20 minutes in seconds
 
     with queue_lock:
-        # Get the current session
+        # Get the current session if it exists
         current_session_id = session.get('current_session_id')
         logger.debug(f"Current session ID: {current_session_id}")
         
@@ -135,10 +135,11 @@ def queue():
                 logger.error(f"No session found for ID: {current_session_id}")
                 return jsonify({"status": "error", "type": "error", "message": "Session not found"}), 404
         else:
-            logger.warning("No current session ID found")
-            return jsonify({"status": "error", "type": "error", "message": "No active session"}), 400
+            # If no session, we'll just add to the Spotify queue without session functionality
+            logger.info("No active session, proceeding without session functionality")
+            current_session = None
 
-        if not is_admin and current_session.is_track_on_cooldown(track_uri, cooldown_period):
+        if current_session and not is_admin and current_session.is_track_on_cooldown(track_uri, cooldown_period):
             logger.debug(f"Track on cooldown: {track_name} by {artist_name}")
             return jsonify({"status": "error", "message": "This track was recently played. Please try again later."}), 200
 
@@ -148,16 +149,26 @@ def queue():
             sp.add_to_queue(track_uri)
             logger.debug(f"Successfully added to Spotify queue: {track_name} by {artist_name}")
             
-            # Add track to session
-            result = add_track_to_session(current_session, track_uri, track_name, artist_name)
-            logger.debug(f"Result of add_track_to_session: {result}")
+            # Add track to recent_tracks
+            recent_tracks[track_uri] = {
+                'name': track_name,
+                'artists': artist_name,
+                'added_at': time.time()
+            }
             
-            if result['added_to_playlist']:
-                logger.info(f"Track added to playlist: {track_name} by {artist_name}")
+            if current_session:
+                # Add track to session
+                result = add_track_to_session(current_session, track_uri, track_name, artist_name)
+                logger.debug(f"Result of add_track_to_session: {result}")
+                
+                if result['added_to_playlist']:
+                    logger.info(f"Track added to playlist: {track_name} by {artist_name}")
+                else:
+                    logger.warning(f"Track not added to playlist: {track_name} by {artist_name}")
+                
+                return jsonify({"status": "success", "type": "success", "message": "Track added to queue and session!"})
             else:
-                logger.warning(f"Track not added to playlist: {track_name} by {artist_name}")
-            
-            return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
+                return jsonify({"status": "success", "type": "success", "message": "Track added to queue!"})
         except SpotifyException as e:
             logger.error(f"Spotify API error: {str(e)}")
             if e.http_status == 404 and 'NO_ACTIVE_DEVICE' in str(e):
@@ -209,6 +220,7 @@ def current_queue():
 
         user_queue = []
         radio_queue = []
+
         if queue_info and 'queue' in queue_info:
             for track in queue_info['queue']:
                 track_info = {
@@ -216,6 +228,7 @@ def current_queue():
                     'artists': ', '.join([artist['name'] for artist in track['artists']]),
                     'uri': track['uri']
                 }
+                # Check if the track is in recent_tracks
                 if track['uri'] in recent_tracks:
                     user_queue.append(track_info)
                 else:

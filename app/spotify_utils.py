@@ -15,13 +15,12 @@ def get_spotify_oauth():
         scope=current_app.config['SPOTIFY_SCOPE']
     )
 
-def get_token(token_info=None):
-    if not token_info:
-        token_info = session.get('token_info')
-    logger.debug("Token info retrieved from session")
+def get_token():
+    token_info = session.get('token_info')
+    logger.debug(f"Retrieved token_info from session: {token_info}")
 
     if not token_info:
-        logger.warning("No token_info found")
+        logger.warning("No token_info found in session")
         return None
 
     # If token_info is a string, try to parse it as JSON
@@ -49,7 +48,7 @@ def get_token(token_info=None):
         except spotipy.oauth2.SpotifyOauthError as e:
             logger.error(f"Error refreshing token: {e}")
             if 'invalid_grant' in str(e):
-                session.clear()
+                session.pop('token_info', None)
                 return None
         except Exception as e:
             logger.error(f"Error refreshing token: {e}")

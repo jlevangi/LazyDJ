@@ -285,7 +285,7 @@
         }
 
         .main-content {
-            padding-bottom: max(calc(70px + env(safe-area-inset-bottom)), 90px);
+            padding-bottom: max(calc(10px + env(safe-area-inset-bottom)));
         }
     }
 }
