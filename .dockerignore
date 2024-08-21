@@ -8,5 +8,6 @@ __flask_session__
 /logs
 .pytest_cache
 /flask_session
+/venv
 
 
