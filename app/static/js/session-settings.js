@@ -1,6 +1,7 @@
 // session-settings.js
 
 import { showNotification } from './ui.js';
+import { generateCustomQRCode } from './qr-code.js';
 
 console.log('session-settings.js loaded');
 
@@ -128,11 +129,20 @@ function handleSharePlaylist() {
 
 function generateQRCode(elementId, data) {
     const element = document.getElementById(elementId);
+    if (!element) {
+        console.error(`Element with id '${elementId}' not found`);
+        return;
+    }
     element.innerHTML = ''; // Clear previous QR code
-    new QRCode(element, {
-        text: data,
-        width: 256,
-        height: 256,
+    generateCustomQRCode(elementId, data, {
+        size: 300, // Increased size for better visibility
+        color: "#1DB954", // Spotify green color
+        background: "#FFFFFF",
+        logo: "/static/icons/lazydjicon-512x512.png", // Your app logo
+        dotScale: 0.65, // Slightly reduced for more distinct dots
+        cornerRadius: 15, // Add some rounded corners to the overall QR code
+        logoSize: 60, // Control the size of the logo explicitly
+        dotRadius: 5 // Add rounded corners to individual dots
     });
 }
 
