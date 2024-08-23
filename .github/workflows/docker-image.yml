@@ -23,7 +23,18 @@ jobs:
     - name: Get release version
       id: get_version
       run: |
+        # Extract the tag name from GITHUB_REF
         RELEASE_VERSION=${GITHUB_REF#refs/tags/}
+        
+        # Remove any leading 'v' if present
+        RELEASE_VERSION=${RELEASE_VERSION#v}
+        
+        # Validate the version format
+        if [[ ! $RELEASE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: Invalid version format: $RELEASE_VERSION"
+          exit 1
+        fi
+        
         echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_OUTPUT
         echo "Release version: $RELEASE_VERSION"
 
