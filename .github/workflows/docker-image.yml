@@ -19,26 +19,6 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history for all tags and branches
 
-      - name: Determine Next Version
-        id: next_version
-        run: |
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          IFS='.' read -ra VERSION_PARTS <<< "${latest_tag#v}"
-          VERSION_PARTS[2]=$((VERSION_PARTS[2] + 1))
-          new_version="v${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
-          echo "NEW_VERSION=$new_version" >> $GITHUB_OUTPUT
-          echo "New version: $new_version"
-
-      - name: Create Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_VERSION: ${{ steps.next_version.outputs.NEW_VERSION }}
-        run: |
-          gh release create "$NEW_VERSION" \
-            --title "Release $NEW_VERSION" \
-            --notes "Auto-generated release for version $NEW_VERSION" \
-            --target ${{ github.sha }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
