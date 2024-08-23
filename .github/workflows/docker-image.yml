@@ -30,14 +30,14 @@ jobs:
     - name: Get release tag
       id: get_version
       run: |
-        # Extract the tag name from the release event
-        VERSION=$(jq -r '.event.workflow_run.head_branch' < $GITHUB_EVENT_PATH)
+        # Extract the tag name from GITHUB_REF
+        TAG_NAME=$(echo ${{ github.ref }} | sed 's|refs/tags/||')
 
-        # Remove 'v' prefix if present
-        VERSION=${VERSION#v}
+        # Optional: Remove 'v' prefix if present
+        TAG_NAME=${TAG_NAME#v}
         
-        echo "RELEASE_VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "Release version: $VERSION"
+        echo "RELEASE_VERSION=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "Release version: $TAG_NAME"
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
