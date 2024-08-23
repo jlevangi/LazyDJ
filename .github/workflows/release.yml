@@ -35,11 +35,10 @@ jobs:
 
       - name: Create Release
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEW_VERSION: ${{ steps.next_version.outputs.NEW_VERSION }}
         run: |
           gh release create "$NEW_VERSION" \
             --title "Release $NEW_VERSION" \
             --notes "Auto-generated release for version $NEW_VERSION" \
             --target ${{ github.sha }}
-
