@@ -27,15 +27,13 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Get release version
+    - name: Get release tag
       id: get_version
       run: |
-        if [[ $GITHUB_REF == refs/tags/* ]]; then
-          VERSION=${GITHUB_REF#refs/tags/}
-        else
-          VERSION=$(echo $GITHUB_SHA | cut -c1-7)
-        fi
-        
+        # Extract the tag name from the release event
+        VERSION=$(jq -r '.event.workflow_run.head_branch' < $GITHUB_EVENT_PATH)
+
+        # Remove 'v' prefix if present
         VERSION=${VERSION#v}
         
         echo "RELEASE_VERSION=$VERSION" >> $GITHUB_OUTPUT
