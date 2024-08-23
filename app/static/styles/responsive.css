@@ -281,7 +281,7 @@
         }
 
         .content-container {
-            padding-bottom: max(calc(70px + env(safe-area-inset-bottom)), 90px);
+            padding-bottom: max(calc(70px + env(safe-area-inset-bottom)));
         }
 
         .main-content {

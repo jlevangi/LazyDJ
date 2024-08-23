@@ -1,3 +1,7 @@
+:root {
+    --vh: 1vh;
+  }
+
 /* Search container */
 .search-container {
     width: 100%;
@@ -187,7 +191,7 @@
     }
 
     .results {
-        margin-top: -10px; /* Remove the small black space below search buttons */
+        margin-top: -20px; /* Remove the small black space below search buttons */
     }
 
     .result-item {
