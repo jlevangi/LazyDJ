@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   release:
-    types: [published]
+    types: [created]
 
 jobs:
   build:
@@ -37,3 +37,4 @@ jobs:
 
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
+      
