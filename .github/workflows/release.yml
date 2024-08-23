@@ -30,6 +30,11 @@ jobs:
           echo "NEW_VERSION=$new_version" >> $GITHUB_OUTPUT
           echo "New version: $new_version"
 
+      - name: Push new tag
+        run: |
+          git tag ${{ steps.next_version.outputs.NEW_VERSION }}
+          git push origin ${{ steps.next_version.outputs.NEW_VERSION }}
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
