@@ -3,7 +3,12 @@ name: Create Release
 on:
   push:
     branches:
-      - main  # Adjust this to your target branch
+      - main 
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   release:
@@ -13,7 +18,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for all tags and branches
+          fetch-depth: 0
 
       - name: Determine Next Version
         id: next_version
