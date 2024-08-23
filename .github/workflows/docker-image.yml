@@ -24,13 +24,8 @@ jobs:
       id: get_version
       run: |
         RELEASE_VERSION=${GITHUB_REF#refs/tags/}
-        if [ -z "$RELEASE_VERSION" ]; then
-          echo "Error: Unable to extract release version from GITHUB_REF: $GITHUB_REF"
-          exit 1
-        fi
         echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_OUTPUT
         echo "Release version: $RELEASE_VERSION"
-        echo "GITHUB_REF: $GITHUB_REF"
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v4

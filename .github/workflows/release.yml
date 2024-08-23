@@ -23,27 +23,21 @@ jobs:
       - name: Determine Next Version
         id: next_version
         run: |
-          # Get the latest tag
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          
-          # Extract the version numbers
           IFS='.' read -ra VERSION_PARTS <<< "${latest_tag#v}"
-          
-          # Increment the patch version
           VERSION_PARTS[2]=$((VERSION_PARTS[2] + 1))
-          
-          # Join the version parts back together
           new_version="v${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.${VERSION_PARTS[2]}"
-          
           echo "NEW_VERSION=$new_version" >> $GITHUB_OUTPUT
           echo "New version: $new_version"
 
       - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEW_VERSION: ${{ steps.next_version.outputs.NEW_VERSION }}
-        run: |
-          gh release create "$NEW_VERSION" \
-            --title "Release $NEW_VERSION" \
-            --notes "Auto-generated release for version $NEW_VERSION" \
-            --target ${{ github.sha }}
+        with:
+          tag_name: ${{ steps.next_version.outputs.NEW_VERSION }}
+          release_name: Release ${{ steps.next_version.outputs.NEW_VERSION }}
+          body: Auto-generated release for version ${{ steps.next_version.outputs.NEW_VERSION }}
+          draft: false
+          prerelease: false
