@@ -428,13 +428,12 @@ def fade_out():
         if not current_playback or not current_playback.get('is_playing', False):
             return jsonify({"status": "error", "message": "No track is currently playing"}), 400
         
-        logger.info("Event Mode: Starting 4-second fade out")
+        logger.info("Event Mode: Starting 2-second fade out")
         
-        # Fade out over 4 seconds: reduce volume from 100% to 0% in steps
-        # 4 seconds with 0.2 second intervals = 20 steps, so 5% volume reduction per step
-        fade_steps = 20
-        fade_interval = 0.2  # 4 seconds total / 20 steps = 0.2 seconds per step
-        volume_step = 5  # 100% / 20 steps = 5% per step
+        # Fade out over 2 seconds: reduce volume from 100% to 0% in steps
+        fade_steps = 10
+        fade_interval = 0.2  # 2 seconds total / 10 steps = 0.2 seconds per step
+        volume_step = 10  # 100% / 10 steps = 10% per step
         
         for step in range(fade_steps + 1):  # +1 to ensure we reach 0
             volume = max(0, 100 - (step * volume_step))
@@ -496,18 +495,24 @@ def fade_in():
         sp.start_playback()
         
         # Fade in over 2 seconds: increase volume from 0% to 100%
-        fade_steps = 10
-        fade_interval = 0.2  # 2 seconds total / 10 steps = 0.2 seconds per step
-        volume_step = 10  # 100% / 10 steps = 10% per step
-        
+        fade_steps = 6
+        fade_interval = 2.0 / fade_steps  # 2 seconds total / 6 steps = 0.33 seconds per step
+        volume_step = 100 // fade_steps  # 100% / 6 steps = ~16% per step
+
         for step in range(1, fade_steps + 1):
-            volume = step * volume_step
+            volume = min(100, step * volume_step)  # Cap at 100%
             try:
                 sp.volume(volume)
                 if step < fade_steps:  # Don't sleep after the final volume setting
                     time.sleep(fade_interval)
             except SpotifyException as e:
                 logger.warning(f"Error during fade in at volume {volume}: {str(e)}")
+        
+        # Ensure we end at exactly 100%
+        try:
+            sp.volume(100)
+        except SpotifyException as e:
+            logger.warning(f"Error setting final volume: {str(e)}")
         
         logger.info("Event Mode: Fade in completed")
         return jsonify({"status": "success", "message": "Playback resumed and faded in"})

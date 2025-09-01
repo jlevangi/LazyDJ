@@ -248,9 +248,13 @@
 
 /* Responsive design */
 @media (max-width: 480px) {
+    .event-mode-container {
+        padding: 10px;
+    }
+    
     .event-header {
         padding: 12px 15px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     
     .event-header h1 {
@@ -260,6 +264,19 @@
     .event-header p {
         font-size: 0.85em;
         margin: 5px 0 0 0;
+    }
+    
+    .preset-songs-section {
+        margin-bottom: 25px;
+    }
+    
+    .preset-buttons {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .playlist-control-section,
+    .volume-control-section {
+        margin-bottom: 20px;
     }
     
     .notification {
