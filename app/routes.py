@@ -376,7 +376,7 @@ def event_mode():
 
 @bp.route('/api/play-preset/<path:uri>')
 def play_preset(uri):
-    """Play a preset song immediately, replacing current playback"""
+    """Play a preset song with seamless transition (quick fade-out of current, immediate start of new)"""
     token_info = get_token()
     if not token_info:
         return jsonify({"status": "error", "message": "Not authenticated"}), 401
@@ -388,15 +388,41 @@ def play_preset(uri):
     sp = spotipy.Spotify(auth=token_info['access_token'])
     
     try:
-        # Start playback with the preset song
+        # Check if something is currently playing
+        current_playback = sp.current_playback()
+        
+        if current_playback and current_playback.get('is_playing', False):
+            logger.info("Event Mode: Current song playing, performing quick fade-out for seamless transition")
+            
+            # Quick fade-out over 0.5 seconds for seamless transition (smooth with more steps)
+            fade_steps = 12
+            fade_interval = 0.5 / fade_steps  # 0.5 seconds total / 12 steps = ~0.042 seconds per step
+            volume_step = 100 // fade_steps  # 100% / 12 steps = ~8% per step
+            
+            for step in range(fade_steps + 1):  # +1 to ensure we reach 0
+                volume = max(0, 100 - (step * volume_step))
+                try:
+                    sp.volume(volume)
+                    if volume > 0:  # Don't sleep after setting volume to 0
+                        time.sleep(fade_interval)
+                except SpotifyException as e:
+                    logger.warning(f"Error during quick fade at volume {volume}: {str(e)}")
+        
+        # Immediately start the new preset song (no fade-in needed since songs have natural intros)
         sp.start_playback(uris=[uri])
+        
+        # Restore volume to 100% for the new song
+        try:
+            sp.volume(100)
+        except SpotifyException as e:
+            logger.warning(f"Error restoring volume: {str(e)}")
         
         # Get track info for logging and response
         track_info = sp.track(uri)
         track_name = track_info['name']
         artist_names = ', '.join([artist['name'] for artist in track_info['artists']])
         
-        logger.info(f"Event Mode: Playing preset song - {track_name} by {artist_names}")
+        logger.info(f"Event Mode: Seamless transition to preset song - {track_name} by {artist_names}")
         
         return jsonify({
             "status": "success", 
