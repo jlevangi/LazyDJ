@@ -1,0 +1,611 @@
+{% extends "base.html" %}
+
+{% block title %}Lazy DJ - Event Mode{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Event Mode specific styles - mobile-first design */
+.event-mode-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.event-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.wedding-title {
+    font-size: 1.4em;
+    font-weight: 500;
+    color: #667eea;
+    padding: 8px 0;
+    margin: 0;
+}
+
+.all-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.preset-button,
+.control-button,
+.fade-button {
+    border: none;
+    padding: 18px 16px;
+    border-radius: 12px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    box-sizing: border-box;
+}
+
+.preset-button {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    box-shadow: 0 3px 10px rgba(17, 153, 142, 0.3);
+}
+
+.playlist-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+}
+
+.skip-button {
+    background: linear-gradient(135deg, #ffa726 0%, #ff7043 100%);
+    box-shadow: 0 3px 10px rgba(255, 167, 38, 0.3);
+}
+
+.fade-out {
+    background: linear-gradient(135deg, #ff7b7b 0%, #d63384 100%);
+    box-shadow: 0 3px 10px rgba(214, 51, 132, 0.3);
+}
+
+.preset-button:hover,
+.control-button:hover,
+.fade-button:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+}
+
+.preset-button:active,
+.control-button:active,
+.fade-button:active {
+    transform: translateY(0);
+}
+
+.preset-button:disabled,
+.control-button:disabled,
+.fade-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.playlist-control-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.playlist-control-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.6em;
+    font-weight: 400;
+}
+
+.control-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+
+.control-button {
+    border: none;
+    padding: 18px 30px;
+    border-radius: 12px;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 60px;
+}
+
+.playlist-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.playlist-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.skip-button {
+    background: linear-gradient(135deg, #ffa726 0%, #ff7043 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 167, 38, 0.3);
+}
+
+.skip-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 167, 38, 0.4);
+}
+
+.control-button:active {
+    transform: translateY(0);
+}
+
+.control-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.volume-control-section {
+    text-align: center;
+}
+
+.volume-control-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.6em;
+    font-weight: 400;
+}
+
+.volume-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+}
+
+.fade-button {
+    border: none;
+    padding: 18px 30px;
+    border-radius: 12px;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 60px;
+    color: white;
+}
+
+.fade-out {
+    background: linear-gradient(135deg, #ff7b7b 0%, #d63384 100%);
+    box-shadow: 0 4px 15px rgba(214, 51, 132, 0.3);
+}
+
+.fade-out:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(214, 51, 132, 0.4);
+}
+
+.fade-in {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+}
+
+.fade-in:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+}
+
+.fade-button:active {
+    transform: translateY(0);
+}
+
+.fade-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    max-width: 300px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.notification.error {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.back-link:hover {
+    color: #764ba2;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+    .event-mode-container {
+        padding: 8px;
+    }
+    
+    .event-header {
+        margin-bottom: 12px;
+    }
+    
+    .wedding-title {
+        font-size: 1.2em;
+        padding: 4px 0;
+    }
+    
+    .all-buttons-grid {
+        gap: 8px;
+    }
+    
+    .preset-button,
+    .control-button,
+    .fade-button {
+        padding: 16px 12px;
+        font-size: 1em;
+        height: 70px;
+    }
+    
+    .notification {
+        top: 10px !important;
+        left: 10px !important;
+        right: 10px !important;
+        max-width: none !important;
+        padding: 8px 12px !important;
+        font-size: 0.85em !important;
+        transform: translateY(-80px) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+        border-radius: 6px !important;
+        text-align: center !important;
+    }
+    
+    .notification.show {
+        transform: translateY(0) !important;
+    }
+}
+
+@media (min-width: 768px) {
+    .preset-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .control-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .volume-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .event-header {
+        padding: 25px 20px;
+        margin-bottom: 40px;
+    }
+    
+    .event-header h1 {
+        font-size: 2.2em;
+    }
+    
+    .event-header p {
+        font-size: 1.05em;
+    }
+}
+
+@media (min-width: 1024px) {
+    .preset-buttons {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .event-header h1 {
+        font-size: 2.5em;
+    }
+    
+    .event-header p {
+        font-size: 1.1em;
+    }
+}
+
+/* Loading state */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="event-mode-container">
+    <a href="{{ url_for('routes.search') }}" class="back-link">← Back to Main</a>
+    
+    <div class="event-header">
+        <div class="wedding-title">👰 Wedding Mode</div>
+    </div>
+
+    <div class="all-buttons-grid">
+        {% for song in preset_songs %}
+        <button class="preset-button" data-uri="{{ song.uri }}" data-song-name="{{ song.name }}" onclick="handlePresetClick(this)">
+            {{ song.name }}
+        </button>
+        {% endfor %}
+        
+        <button class="control-button playlist-button" onclick="resumePlaylist()">📃 Resume Normal Playlist</button>
+        <button class="control-button skip-button" onclick="skipSong()">⏭️ Skip Song</button>
+        <button class="fade-button fade-out" onclick="fadeOut()">🔇 Fade Out</button>
+    </div>
+
+<div id="notification" class="notification"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Event Mode JavaScript - handles button clicks with AJAX requests
+
+let isLoading = false;
+
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 4000);
+}
+
+function setButtonLoading(button, loading) {
+    if (loading) {
+        button.disabled = true;
+        button.classList.add('loading');
+    } else {
+        button.disabled = false;
+        button.classList.remove('loading');
+    }
+}
+
+function handlePresetClick(button) {
+    const uri = button.getAttribute('data-uri');
+    const songName = button.getAttribute('data-song-name');
+    console.log('Button clicked:', songName, uri);
+    playPresetSong(uri, songName);
+}
+
+function playPresetSong(uri, songName) {
+    if (isLoading) return;
+    
+    isLoading = true;
+    const button = event.target;
+    const originalText = button.textContent;
+    
+    setButtonLoading(button, true);
+    button.textContent = 'Playing...';
+    
+    fetch(`/api/play-preset/${encodeURIComponent(uri)}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to play song', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error playing preset song:', error);
+        showNotification('Network error occurred', 'error');
+    })
+    .finally(() => {
+        isLoading = false;
+        setButtonLoading(button, false);
+        button.textContent = originalText;
+    });
+}
+
+function fadeOut() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    const button = event.target;
+    const originalText = button.textContent;
+    
+    setButtonLoading(button, true);
+    button.textContent = 'Fading...';
+    
+    fetch('/api/fade-out', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to fade out', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error fading out:', error);
+        showNotification('Network error occurred', 'error');
+    })
+    .finally(() => {
+        isLoading = false;
+        setButtonLoading(button, false);
+        button.textContent = originalText;
+    });
+}
+
+function fadeIn() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    const button = event.target;
+    const originalText = button.textContent;
+    
+    setButtonLoading(button, true);
+    button.textContent = 'Fading In...';
+    
+    fetch('/api/fade-in', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to fade in', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error fading in:', error);
+        showNotification('Network error occurred', 'error');
+    })
+    .finally(() => {
+        isLoading = false;
+        setButtonLoading(button, false);
+        button.textContent = originalText;
+    });
+}
+
+function resumePlaylist() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    const button = event.target;
+    const originalText = button.textContent;
+    
+    setButtonLoading(button, true);
+    button.textContent = 'Starting Playlist...';
+    
+    fetch('/api/resume-playlist', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to start playlist', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error starting playlist:', error);
+        showNotification('Network error occurred', 'error');
+    })
+    .finally(() => {
+        isLoading = false;
+        setButtonLoading(button, false);
+        button.textContent = originalText;
+    });
+}
+
+function skipSong() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    const button = event.target;
+    const originalText = button.textContent;
+    
+    setButtonLoading(button, true);
+    button.textContent = 'Skipping...';
+    
+    fetch('/api/skip-song', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to skip song', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error skipping song:', error);
+        showNotification('Network error occurred', 'error');
+    })
+    .finally(() => {
+        isLoading = false;
+        setButtonLoading(button, false);
+        button.textContent = originalText;
+    });
+}
+
+// Prevent double-clicks and rapid firing
+document.addEventListener('DOMContentLoaded', function() {
+    // Add touch feedback for mobile devices
+    const buttons = document.querySelectorAll('.preset-button, .fade-button, .control-button');
+    buttons.forEach(button => {
+        button.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        button.addEventListener('touchend', function() {
+            this.style.transform = '';
+        });
+    });
+});
+</script>
+{% endblock %}
