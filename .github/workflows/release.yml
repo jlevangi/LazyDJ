@@ -1,9 +1,9 @@
 name: Create Release
 
 on:
-  push:
-    branches:
-      - main 
+  workflow_dispatch:  # Manual trigger only
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday (optional)
 
 permissions:
   contents: write
