@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   release:
     types: [ published ]
+  workflow_dispatch:  # Allow manual triggering
 
 env:
   REGISTRY: docker.io
@@ -27,18 +28,15 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.IMAGE_NAME }}
-        tags: |
-          # For pushes to main: tag with commit SHA
-          type=ref,event=branch,suffix=-{{sha}}
-          # For releases: tag with version and latest
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
+    - name: Generate tags
+      id: tags
+      run: |
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          echo "tags=${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }},${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+        else
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tags=${{ env.IMAGE_NAME }}:main-${SHORT_SHA},${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+        fi
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
@@ -46,10 +44,7 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        tags: ${{ steps.tags.outputs.tags }}
 
     - name: Image digest
       run: echo ${{ steps.build-and-push.outputs.digest }}
