@@ -17,14 +17,25 @@ export function setupSessionSettingsListeners() {
     console.log('Session Settings Button:', sessionSettingsButton);
     console.log('Session Settings Modal:', sessionSettingsModal);
 
-    sessionSettingsButton.addEventListener('click', openSessionSettingsModal);
-    closeBtn.addEventListener('click', closeSessionSettingsModal);
-    shareSessionButton.addEventListener('click', handleShareSession);
-    createPlaylistButton.addEventListener('click', handleCreateOrSharePlaylist);
-    
+    // Only add listeners if elements exist
+    if (sessionSettingsButton) {
+        sessionSettingsButton.addEventListener('click', openSessionSettingsModal);
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeSessionSettingsModal);
+    }
+    if (shareSessionButton) {
+        shareSessionButton.addEventListener('click', handleShareSession);
+    }
+    if (createPlaylistButton) {
+        createPlaylistButton.addEventListener('click', handleCreateOrSharePlaylist);
+    }
 
-    // Check if a playlist has already been created for this session
-    checkExistingPlaylist();
+    // Only run these if we're on a page with session settings
+    if (sessionSettingsButton && sessionSettingsModal) {
+        // Check if a playlist has already been created for this session
+        checkExistingPlaylist();
+    }
 
     setupEndSessionButton();
 

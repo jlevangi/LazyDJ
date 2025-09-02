@@ -14,6 +14,13 @@
     box-sizing: border-box;
 }
 
+/* Header buttons container */
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 /* Admin mode styles */
 .header-container.admin-mode {
     background-color: #282828;
@@ -92,14 +99,32 @@
     transition: background-color 0.3s ease;
     white-space: nowrap;
     flex-shrink: 0;
-    margin-left: 10px;
     height: 32px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+}
+
+/* Settings button */
+.settings-button {
+    background-color: #FFFFFF;
+    color: #1DB954;
+    border: none;
+    cursor: pointer;
+    border-radius: 16px;
+    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
 }
 
 .new-session-button:hover,
-.share-session-button:hover {
+.share-session-button:hover,
+.settings-button:hover {
     background-color: #E6E6E6;
 }
 
@@ -119,6 +144,12 @@
     .share-session-button {
         font-size: 12px;
         padding: 0 8px;
+    }
+
+    .settings-button {
+        font-size: 14px;
+        width: 28px;
+        height: 28px;
     }
 
     .header-link {
@@ -148,6 +179,13 @@
         padding: 0 8px;
         margin: 2px;
         height: 28px;
+    }
+
+    .settings-button {
+        font-size: 12px;
+        width: 24px;
+        height: 24px;
+        margin: 2px;
     }
 
     .icon-container {

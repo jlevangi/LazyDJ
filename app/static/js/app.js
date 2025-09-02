@@ -10,8 +10,99 @@ import * as SessionSettings from './session-settings.js';
 let currentSessionId = null;
 let sessionToken = null;
 
+// Settings Modal Functions
+window.openSettings = function() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) {
+        modal.style.display = 'block';
+        setTimeout(() => modal.classList.add('show'), 10);
+        loadVersionInfo();
+    }
+};
+
+window.closeSettings = function() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+};
+
+// Load version and settings information
+function loadVersionInfo() {
+    fetch('/api/version')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('appVersion').textContent = data.version || 'unknown';
+            document.getElementById('appTimestamp').textContent = new Date(data.timestamp * 1000).toLocaleString();
+            document.getElementById('weddingModeStatus').textContent = data.wedding_mode ? 'Enabled' : 'Disabled';
+            
+            // Update footer version
+            const versionInfo = document.getElementById('versionInfo');
+            if (versionInfo) {
+                versionInfo.textContent = `v${data.version}`;
+            }
+            
+            // Setup wedding mode toggle
+            const toggleButton = document.getElementById('toggleWeddingMode');
+            if (toggleButton) {
+                toggleButton.onclick = () => toggleWeddingMode();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading version info:', error);
+            document.getElementById('appVersion').textContent = 'Error loading';
+            document.getElementById('appTimestamp').textContent = 'Error loading';
+            document.getElementById('weddingModeStatus').textContent = 'Error loading';
+        });
+}
+
+// Toggle wedding mode
+function toggleWeddingMode() {
+    const toggleButton = document.getElementById('toggleWeddingMode');
+    if (toggleButton) {
+        toggleButton.disabled = true;
+        toggleButton.textContent = 'Toggling...';
+    }
+    
+    fetch('/api/toggle-wedding-mode', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('weddingModeStatus').textContent = data.wedding_mode ? 'Enabled' : 'Disabled';
+            UI.showNotification(data.message, 'success');
+            
+            // Reload page after a brief delay to reflect changes
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            UI.showNotification(`Error: ${data.error}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error toggling wedding mode:', error);
+        UI.showNotification('Error toggling wedding mode', 'error');
+    })
+    .finally(() => {
+        if (toggleButton) {
+            toggleButton.disabled = false;
+            toggleButton.textContent = 'Toggle Wedding Mode';
+        }
+    });
+}
+
 function initializeApp() {
     console.log('Initializing app...');
+    
+    // Load version info on startup
+    loadVersionInfo();
+    
     Util.initializeDebugMode().then(() => {
         const urlParams = new URLSearchParams(window.location.search);
         currentSessionId = urlParams.get('session_id');
