@@ -40,9 +40,12 @@ def get_version():
     try:
         # Read version from VERSION file
         version_path = os.path.join(current_app.root_path, '..', 'VERSION')
+        logger.info(f"Looking for VERSION file at: {version_path}")
         with open(version_path, 'r') as f:
             version = f.read().strip()
-    except:
+        logger.info(f"Successfully read version: {version}")
+    except Exception as e:
+        logger.error(f"Error reading VERSION file: {e}")
         version = "unknown"
     
     wedding_mode = os.getenv('WEDDING_MODE', 'false').lower() == 'true'
