@@ -140,11 +140,35 @@ function handleSharePlaylist() {
 function generateQRCode(elementId, data) {
     const element = document.getElementById(elementId);
     element.innerHTML = ''; // Clear previous QR code
-    new QRCode(element, {
-        text: data,
-        width: 256,
-        height: 256,
-    });
+    
+    try {
+        // Create QR code using the CSP-friendly qrcode-generator library
+        const typeNumber = 0; // Auto-detect
+        const errorCorrectionLevel = 'M';
+        const qr = qrcode(typeNumber, errorCorrectionLevel);
+        qr.addData(data);
+        qr.make();
+        
+        // Create the QR code as SVG (CSP-friendly)
+        const cellSize = 4;
+        const margin = 0;
+        const svgString = qr.createSvgTag(cellSize, margin);
+        element.innerHTML = svgString;
+        
+        // Style the SVG
+        const svg = element.querySelector('svg');
+        if (svg) {
+            svg.style.width = '256px';
+            svg.style.height = '256px';
+            svg.style.border = '2px solid #1DB954';
+            svg.style.borderRadius = '10px';
+            svg.style.display = 'block';
+            svg.style.margin = '0 auto';
+        }
+    } catch (error) {
+        console.error('Error generating QR code:', error);
+        element.innerHTML = '<p style="text-align: center; color: #1DB954;">QR code unavailable</p>';
+    }
 }
 
 export function copySessionLink() {
