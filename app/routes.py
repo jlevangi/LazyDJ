@@ -37,6 +37,13 @@ def debug_status():
 @bp.route('/')
 def index():
     current_app.logger.info('Rendering index.html')
+    
+    # Check if wedding mode is enabled
+    wedding_mode = os.getenv('WEDDING_MODE', 'false').lower() == 'true'
+    if wedding_mode:
+        current_app.logger.info('Wedding mode enabled - redirecting to event-mode')
+        return redirect(url_for('routes.event_mode'))
+    
     return render_template('index.html')
 
 @bp.route('/login')
@@ -54,6 +61,13 @@ def callback():
         session['token_info'] = json.dumps(token_info)
         logger.info("Token info stored in session")
         logger.debug(f"Token info: {json.dumps(token_info)}")
+        
+        # Check if wedding mode is enabled
+        wedding_mode = os.getenv('WEDDING_MODE', 'false').lower() == 'true'
+        if wedding_mode:
+            logger.info("Wedding mode enabled - redirecting to event-mode after authentication")
+            return redirect(url_for('routes.event_mode'))
+        
         return redirect(url_for('routes.search'))
     except spotipy.oauth2.SpotifyOauthError as e:
         logger.error(f"Spotify OAuth Error: {e}")
@@ -75,7 +89,8 @@ def search():
 
     if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         qr_code_available = qr_code_exists()
-        return render_template('search.html', tracks=[], query=query, qr_code_available=qr_code_available)
+        wedding_mode = os.getenv('WEDDING_MODE', 'false').lower() == 'true'
+        return render_template('search.html', tracks=[], query=query, qr_code_available=qr_code_available, wedding_mode=wedding_mode)
 
     try:
         sp = spotipy.Spotify(auth=token_info['access_token'])
@@ -454,12 +469,12 @@ def fade_out():
         if not current_playback or not current_playback.get('is_playing', False):
             return jsonify({"status": "error", "message": "No track is currently playing"}), 400
         
-        logger.info("Event Mode: Starting 2-second fade out")
+        logger.info("Event Mode: Starting 4-second fade out")
         
-        # Fade out over 2 seconds: reduce volume from 100% to 0% in steps
-        fade_steps = 10
-        fade_interval = 0.2  # 2 seconds total / 10 steps = 0.2 seconds per step
-        volume_step = 10  # 100% / 10 steps = 10% per step
+        # Fade out over 4 seconds: reduce volume from 100% to 0% in steps
+        fade_steps = 20
+        fade_interval = 0.2  # 4 seconds total / 20 steps = 0.2 seconds per step
+        volume_step = 5  # 100% / 20 steps = 5% per step
         
         for step in range(fade_steps + 1):  # +1 to ensure we reach 0
             volume = max(0, 100 - (step * volume_step))
