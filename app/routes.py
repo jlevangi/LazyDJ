@@ -34,6 +34,52 @@ def qr_code_exists():
 def debug_status():
     return jsonify({"debug_mode": current_app.debug})
 
+@bp.route('/api/version')
+def get_version():
+    """Get application version and status"""
+    try:
+        # Read version from VERSION file
+        version_path = os.path.join(current_app.root_path, 'VERSION')
+        logger.info(f"Looking for VERSION file at: {version_path}")
+        with open(version_path, 'r') as f:
+            version = f.read().strip()
+        logger.info(f"Successfully read version: {version}")
+    except Exception as e:
+        logger.error(f"Error reading VERSION file: {e}")
+        version = "unknown"
+    
+    wedding_mode = os.getenv('WEDDING_MODE', 'false').lower() == 'true'
+    
+    return jsonify({
+        "version": version,
+        "wedding_mode": wedding_mode,
+        "timestamp": time.time()
+    })
+
+@bp.route('/api/toggle-wedding-mode', methods=['POST'])
+def toggle_wedding_mode():
+    """Toggle wedding mode on/off"""
+    try:
+        current_mode = os.getenv('WEDDING_MODE', 'false').lower() == 'true'
+        new_mode = not current_mode
+        
+        # Note: This only works for the current session
+        # To persist across container restarts, the environment variable 
+        # would need to be set at the container/deployment level
+        os.environ['WEDDING_MODE'] = 'true' if new_mode else 'false'
+        
+        return jsonify({
+            "success": True,
+            "wedding_mode": new_mode,
+            "message": f"Wedding mode {'enabled' if new_mode else 'disabled'}"
+        })
+    except Exception as e:
+        logger.error(f"Error toggling wedding mode: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @bp.route('/')
 def index():
     current_app.logger.info('Rendering index.html')

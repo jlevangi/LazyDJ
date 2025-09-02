@@ -1,0 +1,32 @@
+/* Version footer */
+.version-footer {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: monospace;
+    z-index: 999;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .version-footer {
+        font-size: 10px;
+        padding: 3px 6px;
+        bottom: 8px;
+        right: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .version-footer {
+        font-size: 9px;
+        padding: 2px 4px;
+        bottom: 6px;
+        right: 6px;
+    }
+}

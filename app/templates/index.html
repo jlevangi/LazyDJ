@@ -5,6 +5,9 @@
 {% block content %}
 <div class="header-container">
     <h1><a href="{{ url_for('routes.index') }}" class="header-link">Lazy DJ</a></h1>
+    <div class="header-buttons">
+        <button id="settingsButton" class="settings-button" onclick="openSettings()">⚙️</button>
+    </div>
 </div>
 
 <div class="content-container">
@@ -12,6 +15,34 @@
         <a href="{{ url_for('routes.login') }}" class="login-button" id="loginButton">Login with Spotify</a>
     </div>
 </div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeSettings()">&times;</span>
+        <h2>⚙️ Settings</h2>
+        
+        <div class="settings-section">
+            <h3>Version Information</h3>
+            <p><strong>Version:</strong> <span id="appVersion">Loading...</span></p>
+            <p><strong>Build:</strong> <span id="appTimestamp">Loading...</span></p>
+        </div>
+
+        <div class="settings-section">
+            <h3>Wedding Mode</h3>
+            <p><strong>Status:</strong> <span id="weddingModeStatus">Loading...</span></p>
+            <button id="toggleWeddingMode" class="settings-toggle-button">Toggle Wedding Mode</button>
+            <p><small>Note: Changes persist only until container restart</small></p>
+        </div>
+    </div>
+</div>
+
+<!-- Version Footer -->
+<div class="version-footer">
+    <span id="versionInfo">v?.?.?</span>
+</div>
+
+<div id="notification"></div>
 {% endblock %}
 
 {% block scripts %}
