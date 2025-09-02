@@ -39,7 +39,7 @@ def get_version():
     """Get application version and status"""
     try:
         # Read version from VERSION file
-        version_path = os.path.join(current_app.root_path, '..', 'VERSION')
+        version_path = os.path.join(current_app.root_path, 'VERSION')
         logger.info(f"Looking for VERSION file at: {version_path}")
         with open(version_path, 'r') as f:
             version = f.read().strip()
