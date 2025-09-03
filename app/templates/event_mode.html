@@ -363,10 +363,16 @@
 
 {% block content %}
 <div class="event-mode-container">
-    <a href="{{ url_for('routes.search') }}" class="back-link">← Back to Main</a>
+    <a href="{{ url_for('routes.search') }}" class="back-link">← Back to Search</a>
     
     <div class="event-header">
         <div class="wedding-title">👰 Wedding Mode</div>
+        {% if not has_event_owner %}
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: center;">
+            <p style="margin: 0 0 10px 0; color: #6c757d;">Event owner needs to authenticate first to enable music controls:</p>
+            <a href="{{ url_for('routes.login') }}" style="background: #1db954; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-weight: 500;">Set Up Event (Owner Login)</a>
+        </div>
+        {% endif %}
     </div>
 
     <div class="all-buttons-grid">
@@ -438,6 +444,8 @@ function playPresetSong(uri, songName) {
     .then(data => {
         if (data.status === 'success') {
             showNotification(data.message, 'success');
+        } else if (data.message && data.message.includes('Not authenticated')) {
+            showNotification('Event owner needs to set up Spotify authentication first', 'error');
         } else {
             showNotification(data.message || 'Failed to play song', 'error');
         }
@@ -473,6 +481,8 @@ function fadeOut() {
     .then(data => {
         if (data.status === 'success') {
             showNotification(data.message, 'success');
+        } else if (data.message && data.message.includes('Not authenticated')) {
+            showNotification('Event owner needs to set up Spotify authentication first', 'error');
         } else {
             showNotification(data.message || 'Failed to fade out', 'error');
         }
@@ -508,6 +518,8 @@ function fadeIn() {
     .then(data => {
         if (data.status === 'success') {
             showNotification(data.message, 'success');
+        } else if (data.message && data.message.includes('Not authenticated')) {
+            showNotification('Event owner needs to set up Spotify authentication first', 'error');
         } else {
             showNotification(data.message || 'Failed to fade in', 'error');
         }
@@ -543,6 +555,8 @@ function resumePlaylist() {
     .then(data => {
         if (data.status === 'success') {
             showNotification(data.message, 'success');
+        } else if (data.message && data.message.includes('Not authenticated')) {
+            showNotification('Event owner needs to set up Spotify authentication first', 'error');
         } else {
             showNotification(data.message || 'Failed to start playlist', 'error');
         }
@@ -578,6 +592,8 @@ function skipSong() {
     .then(data => {
         if (data.status === 'success') {
             showNotification(data.message, 'success');
+        } else if (data.message && data.message.includes('Not authenticated')) {
+            showNotification('Event owner needs to set up Spotify authentication first', 'error');
         } else {
             showNotification(data.message || 'Failed to skip song', 'error');
         }
