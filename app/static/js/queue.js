@@ -309,9 +309,74 @@ function displayUserParticipantInfo(participant) {
     
     // Display the participant info
     participantContainer.innerHTML = `
-        <div class="participant-badge">
+        <div class="participant-badge clickable" onclick="editParticipantName()">
             <span class="participant-icon" style="background-color: ${participant.color}">${participant.icon}</span>
             <span class="participant-text">You are <strong>${participant.name}</strong></span>
+            <span class="edit-hint">Click to edit</span>
         </div>
     `;
+    
+    // Store current participant data for editing
+    window.currentParticipantData = participant;
+}
+
+// Global function for editing participant name
+window.editParticipantName = function() {
+    const currentData = window.currentParticipantData;
+    if (!currentData) return;
+    
+    // Simple prompt for now (we can make this fancier later)
+    const newName = prompt('Enter your name:', currentData.name.replace('Guest ', ''));
+    
+    if (newName && newName.trim() !== '' && newName.trim() !== currentData.name) {
+        updateParticipantName(newName.trim());
+    }
+};
+
+function updateParticipantName(newName) {
+    const currentData = window.currentParticipantData;
+    if (!currentData) return;
+    
+    console.log('Updating participant name to:', newName);
+    
+    // Extract session ID from URL
+    const pathParts = window.location.pathname.split('/');
+    const sessionId = pathParts[1];
+    
+    // Update participant name on backend
+    fetch(`/session/${sessionId}/update_participant`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            participant_id: currentData.id,
+            name: newName
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Name update response:', data);
+        if (data.participant) {
+            // Update localStorage with new participant data
+            localStorage.setItem(`participant_info_${sessionId}`, JSON.stringify(data.participant));
+            
+            // Update the displayed participant info
+            displayUserParticipantInfo(data.participant);
+            
+            // Update global reference
+            window.currentParticipantData = data.participant;
+            
+            showNotification(`Name updated to ${newName}!`, 'success');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating participant name:', error);
+        showNotification('Error updating name', 'error');
+    });
 }

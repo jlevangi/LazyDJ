@@ -139,10 +139,15 @@ export function updateQueueDisplay(data) {
         
         data.user_queue.forEach(track => {
             console.log('Track data:', track); // Debug log
-            let contributorIcon = '';
+            let contributorInfo = '';
             if (track.added_by_info) {
-                contributorIcon = `<span class="contributor-icon" style="background-color: ${track.added_by_info.color}" title="Added by ${track.added_by_info.name}">${track.added_by_info.icon}</span>`;
-                console.log('Added contributor icon for:', track.added_by_info.name);
+                contributorInfo = `
+                    <div class="contributor-info">
+                        <span class="contributor-icon" style="background-color: ${track.added_by_info.color}" title="Added by ${track.added_by_info.name}">${track.added_by_info.icon}</span>
+                        <span class="contributor-name">${escapeHtml(track.added_by_info.name)}</span>
+                    </div>
+                `;
+                console.log('Added contributor info for:', track.added_by_info.name);
             } else {
                 console.log('No added_by_info for track:', track.name);
             }
@@ -152,7 +157,7 @@ export function updateQueueDisplay(data) {
                     <div class="track-info">
                         ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
                     </div>
-                    ${contributorIcon}
+                    ${contributorInfo}
                 </div>`;
         });
         queueContent.appendChild(userQueueSection);

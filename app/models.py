@@ -87,9 +87,19 @@ class Session:
         return len(self.participants)
 
     def add_to_queue(self, track, participant_id=None):
+        logger.debug(f"add_to_queue called with participant_id: '{participant_id}' (type: {type(participant_id)})")
+        logger.debug(f"Current session participants: {list(self.participants.keys())}")
+        
         # Ensure we have participant info
         if participant_id:
-            participant = self.get_or_create_participant(participant_id)
+            logger.debug(f"Looking for participant_id '{participant_id}' in session participants")
+            if participant_id in self.participants:
+                participant = self.participants[participant_id]
+                logger.debug(f"Found existing participant: {participant}")
+            else:
+                logger.debug(f"Creating new participant for ID: {participant_id}")
+                participant = self.get_or_create_participant(participant_id)
+                
             participant['song_count'] += 1
             track['added_by'] = participant_id
             track['added_by_info'] = {
@@ -97,7 +107,9 @@ class Session:
                 'color': participant['color'],
                 'icon': participant['icon']
             }
+            logger.debug(f"Added participant info to track: {track['added_by_info']}")
         else:
+            logger.debug("No participant_id provided, using session owner info")
             # Default for session owner or when no participant ID provided
             track['added_by'] = 'owner'
             track['added_by_info'] = {

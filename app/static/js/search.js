@@ -1,6 +1,6 @@
 //  search.js
 import { showNotification } from './ui.js';
-import { truncateText, debugLog } from './util.js';
+import { truncateText, debugLog, escapeJs } from './util.js';
 import { addTrackToQueue, playTrackNow, fetchQueue } from './queue.js';
 import { isInAdminMode } from './admin.js';
 
@@ -44,9 +44,9 @@ export function fetchRecommendations(query, sessionId = null, sessionToken = nul
                         <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
                     </div>
                     <div class="button-container">
-                        <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}', '${sessionId || ''}')">Add to Queue</button>
+                        <button onclick="addTrackToQueue('${escapeJs(track.uri)}', '${escapeJs(track.name)}', '${escapeJs(track.artists)}', '${escapeJs(sessionId || '')}')">Add to Queue</button>
                         ${isInAdminMode() ?
-                            `<button onclick="playTrackNow('${track.uri}')" class="play-now-button">Play Now</button>` : ''}
+                            `<button onclick="playTrackNow('${escapeJs(track.uri)}')" class="play-now-button">Play Now</button>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -117,9 +117,9 @@ function handleSearchResults(data, sessionId) {
                 <p class="track-artist" title="${track.artists}">${truncateText(track.artists, 40)}</p>
             </div>
             <div class="button-container">
-                <button onclick="addTrackToQueue('${track.uri}', '${track.name}', '${track.artists}', '${sessionId || ''}')">Add to Queue</button>
+                <button onclick="addTrackToQueue('${escapeJs(track.uri)}', '${escapeJs(track.name)}', '${escapeJs(track.artists)}', '${escapeJs(sessionId || '')}')">Add to Queue</button>
                 ${isInAdminMode() ?
-                    `<button onclick="playTrackNow('${track.uri}')" class="play-now-button">Play Now</button>` : ''}
+                    `<button onclick="playTrackNow('${escapeJs(track.uri)}')" class="play-now-button">Play Now</button>` : ''}
             </div>
         </div>
     `).join('');

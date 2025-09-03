@@ -204,6 +204,34 @@ def session_search(session_id):
         logger.error(f"Unexpected error in session search: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@bp.route('/session/<session_id>/update_participant', methods=['POST'])
+def update_participant(session_id):
+    """Update participant information (like name)"""
+    current_session = get_session(session_id)
+    if not current_session:
+        return jsonify({"error": "Session not found"}), 404
+
+    data = request.get_json()
+    participant_id = data.get('participant_id')
+    new_name = data.get('name', '').strip()
+
+    if not participant_id or not new_name:
+        return jsonify({"error": "Missing participant_id or name"}), 400
+
+    if participant_id not in current_session.participants:
+        return jsonify({"error": "Participant not found"}), 404
+
+    # Update the participant name
+    current_session.participants[participant_id]['name'] = new_name
+    updated_participant = current_session.participants[participant_id]
+    
+    logger.info(f"Updated participant {participant_id} name to '{new_name}' in session {session_id}")
+
+    return jsonify({
+        "participant": updated_participant,
+        "message": "Name updated successfully"
+    })
+
 @bp.route('/session/<session_id>/recommendations')
 def session_recommendations(session_id):
     """Get recommendations for a session (used for search autocomplete)"""
@@ -256,10 +284,18 @@ def session_queue(session_id):
     participant_id = request.form.get('participant_id')  # New field for participant tracking
 
     logger.info(f"Attempting to add track to session {session_id}: {track_name} by {artist_name} (URI: {track_uri}) from participant: {participant_id}")
+    logger.debug(f"Session participants: {current_session.participants.keys()}")
+    logger.debug(f"Received participant_id: '{participant_id}' (type: {type(participant_id)})")
 
     if not all([track_uri, track_name, artist_name]):
         logger.warning(f"Missing track information for session {session_id}")
         return jsonify({"error": "Missing track information"}), 400
+
+    # Check for cooldown (20 minute period)
+    cooldown_period = 1200  # 20 minutes in seconds
+    if current_session.is_track_on_cooldown(track_uri, cooldown_period):
+        logger.debug(f"Track on cooldown in session: {track_name} by {artist_name}")
+        return jsonify({"status": "error", "message": "This track was recently played. Please try again later."}), 200
 
     try:
         token_info = json.loads(current_session.owner_token)
@@ -285,7 +321,9 @@ def session_queue(session_id):
             'name': track_name,
             'artists': artist_name
         }
+        logger.debug(f"Track before adding to queue: {track}")
         current_session.add_to_queue(track, participant_id)
+        logger.debug(f"Track after adding to queue: {track}")
         logger.info(f"Added track to session queue: {track_name}")
         
         # Add track to playlist if playlist exists
@@ -346,17 +384,37 @@ def session_current_queue(session_id):
         queue_info = sp._get('me/player/queue')
         current_track = sp.currently_playing()
 
-        user_queue = current_session.get_queue()
-        # Format radio queue tracks properly (convert artist objects to string)
+        # Get current Spotify queue URIs for comparison
+        current_spotify_uris = [track['uri'] for track in queue_info['queue']] if queue_info else []
+        
+        # Get session's tracked queue
+        session_queue = current_session.get_queue()
+        
+        # Split session queue into tracks still in Spotify queue vs played tracks
+        still_queued_tracks = [track for track in session_queue if track['uri'] in current_spotify_uris]
+        played_tracks = [track for track in session_queue if track['uri'] not in current_spotify_uris]
+        
+        # Update session's queue to remove played tracks
+        current_session.queue = still_queued_tracks
+        
+        # User queue contains tracks added by session participants (have added_by info)
+        user_queue = [track for track in still_queued_tracks if track.get('added_by')]
+        
+        # Radio queue contains Spotify's algorithm tracks (no added_by info) plus remaining Spotify queue
         radio_queue = []
-        for track in queue_info['queue']:
-            if track['uri'] not in [t['uri'] for t in user_queue]:
-                formatted_track = {
-                    'name': track['name'],
-                    'artists': ', '.join([artist['name'] for artist in track['artists']]),
-                    'uri': track['uri']
-                }
-                radio_queue.append(formatted_track)
+        if queue_info:
+            for track in queue_info['queue']:
+                # Check if this track was added by a participant
+                participant_track = next((t for t in still_queued_tracks if t['uri'] == track['uri'] and t.get('added_by')), None)
+                
+                # If not added by participant, it's a radio track
+                if not participant_track:
+                    formatted_track = {
+                        'name': track['name'],
+                        'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                        'uri': track['uri']
+                    }
+                    radio_queue.append(formatted_track)
 
         return jsonify({
             'current_track': {
