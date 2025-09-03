@@ -41,15 +41,74 @@ class Session:
         self.queue_cooldowns = {}  # Dictionary to track cooldowns
         self.playlist_id = None
         self.playlist_name = None
+        self.participants = {}  # Dict: participant_id -> {name, icon, added_at}
+        self.participant_counter = 0  # Counter for generating participant IDs
         logger.info(f"Created new session: {self.session_id}")
 
     def get_token_info(self):
         return json.loads(self.owner_token)
 
-    def add_to_queue(self, track):
+    def add_participant(self, participant_id=None):
+        """Add a new participant to the session and return their info"""
+        if participant_id and participant_id in self.participants:
+            return self.participants[participant_id]
+        
+        # Generate a new participant
+        if not participant_id:
+            self.participant_counter += 1
+            participant_id = f"user_{self.participant_counter}"
+        
+        # Generate initials or pick an icon (using predefined colors/icons)
+        colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+                 '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
+        icons = ['♪', '♫', '♬', '♩', '♭', '♯', '◆', '●', '▲', '■']
+        
+        participant_info = {
+            'id': participant_id,
+            'name': f"Guest {self.participant_counter}",
+            'color': colors[self.participant_counter % len(colors)],
+            'icon': icons[self.participant_counter % len(icons)],
+            'added_at': datetime.now().isoformat(),
+            'song_count': 0
+        }
+        
+        self.participants[participant_id] = participant_info
+        logger.info(f"Added participant {participant_id} to session {self.session_id}")
+        return participant_info
+
+    def get_or_create_participant(self, participant_id=None):
+        """Get existing participant or create new one"""
+        if participant_id and participant_id in self.participants:
+            return self.participants[participant_id]
+        return self.add_participant(participant_id)
+
+    def get_participant_count(self):
+        """Get total number of participants"""
+        return len(self.participants)
+
+    def add_to_queue(self, track, participant_id=None):
+        # Ensure we have participant info
+        if participant_id:
+            participant = self.get_or_create_participant(participant_id)
+            participant['song_count'] += 1
+            track['added_by'] = participant_id
+            track['added_by_info'] = {
+                'name': participant['name'],
+                'color': participant['color'],
+                'icon': participant['icon']
+            }
+        else:
+            # Default for session owner or when no participant ID provided
+            track['added_by'] = 'owner'
+            track['added_by_info'] = {
+                'name': 'Session Host',
+                'color': '#333333',
+                'icon': '♔'
+            }
+        
         self.queue.append(track)
         self.queue_cooldowns[track['uri']] = time.time()
-        logger.info(f"Added track to queue: {track['name']} (URI: {track['uri']})")
+        logger.info(f"Added track to queue: {track['name']} (URI: {track['uri']}) by {track['added_by_info']['name']}")
         if self.playlist_id:
             logger.debug(f"Attempting to add track {track['uri']} to playlist {self.playlist_id}")
             self.add_track_to_playlist(track['uri'])
@@ -130,14 +189,14 @@ def get_event_owner_token():
     """Get the global event owner token for wedding/event mode"""
     return event_owner_token
 
-def add_track_to_session(session, track_uri, track_name, artist_name):
+def add_track_to_session(session, track_uri, track_name, artist_name, participant_id=None):
     logger.info(f"Attempting to add track to session {session.session_id}: {track_name} by {artist_name} (URI: {track_uri})")
     track = {
         'uri': track_uri,
         'name': track_name,
         'artists': artist_name
     }
-    session.add_to_queue(track)
+    session.add_to_queue(track, participant_id)
     added_to_playlist = session.playlist_id is not None
     logger.info(f"Track {track_name} added to session {session.session_id} queue. Added to playlist: {added_to_playlist}")
     return {

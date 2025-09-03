@@ -41,14 +41,30 @@ export function addTrackToQueue(track_uri, trackName, artistName, sessionId = ''
         currentRequest = new AbortController();
         const signal = currentRequest.signal;
 
+        // Get participant ID if we're in a session
+        let participantId = null;
+        if (sessionId) {
+            participantId = localStorage.getItem(`participant_id_${sessionId}`);
+            console.log(`Found participant ID for session ${sessionId}:`, participantId);
+        }
+
+        const formData = new URLSearchParams({ 
+            'track_uri': track_uri, 
+            'track_name': trackName, 
+            'artist_name': artistName
+        });
+
+        if (participantId) {
+            formData.append('participant_id', participantId);
+            console.log('Adding participant_id to form data:', participantId);
+        } else {
+            console.log('No participant ID found - adding track without participant info');
+        }
+
         fetch(url, {
             method: 'POST',
             headers: headers,
-            body: new URLSearchParams({ 
-                'track_uri': track_uri, 
-                'track_name': trackName, 
-                'artist_name': artistName
-            }),
+            body: formData,
             signal: signal
         })
         .then(response => response.json())
@@ -141,6 +157,52 @@ export function fetchQueue(sessionId = null, sessionToken = null) {
     .catch(error => {
         console.error('Error fetching queue:', error);
         showNotification('Error fetching queue: ' + error.message, 'error');
+    });
+}
+
+export function registerParticipant(sessionId) {
+    console.log(`Registering participant for session: ${sessionId}`);
+    
+    // Check if we already have a participant ID for this session
+    const existingParticipantId = localStorage.getItem(`participant_id_${sessionId}`);
+    if (existingParticipantId) {
+        console.log(`Already registered as participant: ${existingParticipantId}`);
+        return Promise.resolve({
+            participant: { id: existingParticipantId },
+            participant_count: null
+        });
+    }
+
+    console.log('Making request to join session endpoint...');
+    return fetch(`/session/${sessionId}/join`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Join session response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Join session response data:', data);
+        if (data.participant && data.participant.id) {
+            // Store participant ID in localStorage for future requests
+            localStorage.setItem(`participant_id_${sessionId}`, data.participant.id);
+            console.log(`Registered as participant: ${data.participant.id}`);
+            showNotification('Joined session as ' + data.participant.name, 'success');
+        } else {
+            console.error('No participant data in response:', data);
+        }
+        return data;
+    })
+    .catch(error => {
+        console.error('Error registering participant:', error);
+        showNotification('Error joining session: ' + error.message, 'error');
+        throw error;
     });
 }
 

@@ -9,6 +9,9 @@ export function isMobile() {
 }
 
 export function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') {
+        unsafe = String(unsafe);
+    }
     return unsafe
          .replace(/&/g, "&amp;")
          .replace(/</g, "&lt;")

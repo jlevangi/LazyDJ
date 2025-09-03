@@ -1,6 +1,6 @@
 # routes.py
 
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session as flask_session, current_app
 from app.spotify_utils import get_token, get_spotify_oauth, format_track_info, get_spotify_client
 from app.models import add_recent_track, Track, add_track_to_session, get_session, delete_session
 from app.admin import check_if_admin
@@ -104,7 +104,7 @@ def callback():
     code = request.args.get('code')
     try:
         token_info = sp_oauth.get_access_token(code)
-        session['token_info'] = json.dumps(token_info)
+        flask_session['token_info'] = json.dumps(token_info)
         logger.info("Token info stored in session")
         logger.debug(f"Token info: {json.dumps(token_info)}")
         
@@ -119,7 +119,7 @@ def callback():
         logger.error(f"Spotify OAuth Error: {e}")
         if 'invalid_grant' in str(e):
             # Clear the session and redirect to login
-            session.clear()
+            flask_session.clear()
             return redirect(url_for('routes.login'))
     except Exception as e:
         logger.error(f"Error in callback: {e}")
@@ -187,7 +187,7 @@ def queue():
 
     with queue_lock:
         # Get the current session if it exists
-        current_session_id = session.get('current_session_id')
+        current_session_id = flask_session.get('current_session_id')
         logger.debug(f"Current session ID: {current_session_id}")
         
         if current_session_id:
@@ -218,8 +218,11 @@ def queue():
             }
             
             if current_session:
+                # Get participant ID from session
+                participant_id = flask_session.get(f'participant_id_{current_session_id}')
+                
                 # Add track to session
-                result = add_track_to_session(current_session, track_uri, track_name, artist_name)
+                result = add_track_to_session(current_session, track_uri, track_name, artist_name, participant_id)
                 logger.debug(f"Result of add_track_to_session: {result}")
                 
                 if result['added_to_playlist']:
@@ -352,12 +355,12 @@ def route_create_session():
 
 @bp.route('/end_session', methods=['POST'])
 def end_session():
-    session_id = session.get('current_session_id')
+    session_id = flask_session.get('current_session_id')
     if session_id:
         try:
             delete_session(session_id)
-            session.pop('current_session_id', None)
-            session.pop('token_info', None)
+            flask_session.pop('current_session_id', None)
+            flask_session.pop('token_info', None)
             logger.info(f"Session ended: {session_id}")
             return jsonify({"status": "success", "message": "Session ended successfully"})
         except Exception as e:
@@ -443,9 +446,9 @@ def event_mode():
     # Store event token in user's session for API calls
     if event_token:
         if isinstance(event_token, str):
-            session['token_info'] = event_token
+            flask_session['token_info'] = event_token
         else:
-            session['token_info'] = json.dumps(event_token)
+            flask_session['token_info'] = json.dumps(event_token)
     
     logger.info(f"Event Mode accessed - event owner token available: {event_token is not None}")
     return render_template('event_mode.html', preset_songs=preset_songs, has_event_owner=event_token is not None)

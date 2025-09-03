@@ -128,11 +128,31 @@ export function updateQueueDisplay(data) {
     if (data && data.user_queue && data.user_queue.length > 0) {
         const userQueueSection = document.createElement('div');
         userQueueSection.className = 'user-queue-section';
-        userQueueSection.innerHTML = '<h3>In the Queue</h3>';
+        
+        // Add participant counter if available
+        let headerText = 'In the Queue';
+        if (data.participant_count !== undefined && data.participant_count > 0) {
+            headerText += ` <span class="participant-count">(${data.participant_count} ${data.participant_count === 1 ? 'person' : 'people'})</span>`;
+        }
+        
+        userQueueSection.innerHTML = `<h3>${headerText}</h3>`;
+        
         data.user_queue.forEach(track => {
+            console.log('Track data:', track); // Debug log
+            let contributorIcon = '';
+            if (track.added_by_info) {
+                contributorIcon = `<span class="contributor-icon" style="background-color: ${track.added_by_info.color}" title="Added by ${track.added_by_info.name}">${track.added_by_info.icon}</span>`;
+                console.log('Added contributor icon for:', track.added_by_info.name);
+            } else {
+                console.log('No added_by_info for track:', track.name);
+            }
+            
             userQueueSection.innerHTML += `
                 <div class="queue-item">
-                    ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
+                    <div class="track-info">
+                        ${escapeHtml(track.name)} by ${escapeHtml(track.artists)}
+                    </div>
+                    ${contributorIcon}
                 </div>`;
         });
         queueContent.appendChild(userQueueSection);
