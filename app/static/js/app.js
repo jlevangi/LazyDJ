@@ -162,7 +162,7 @@ function initializeSession(sessionId) {
             fetchAndUpdateQueue(sessionId);
             setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
             loadInitialSearch(sessionId);
-            UI.showNotification(`Joined session successfully!`, 'success');
+            // Don't show generic success notification - participant registration handles its own notifications
         })
         .catch(error => {
             console.error('Error initializing session:', error);

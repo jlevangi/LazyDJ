@@ -167,6 +167,7 @@ export function registerParticipant(sessionId) {
     const existingParticipantId = localStorage.getItem(`participant_id_${sessionId}`);
     if (existingParticipantId) {
         console.log(`Already registered as participant: ${existingParticipantId}`);
+        // Don't show notification for returning participants
         return Promise.resolve({
             participant: { id: existingParticipantId },
             participant_count: null
@@ -193,7 +194,8 @@ export function registerParticipant(sessionId) {
             // Store participant ID in localStorage for future requests
             localStorage.setItem(`participant_id_${sessionId}`, data.participant.id);
             console.log(`Registered as participant: ${data.participant.id}`);
-            showNotification('Joined session as ' + data.participant.name, 'success');
+            // Only show notification for new participants
+            showNotification('Joined as ' + data.participant.name + '!', 'success');
         } else {
             console.error('No participant data in response:', data);
         }
