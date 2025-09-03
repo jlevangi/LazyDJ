@@ -33,9 +33,14 @@ function loadVersionInfo() {
     fetch('/api/version')
         .then(response => response.json())
         .then(data => {
-            document.getElementById('appVersion').textContent = data.version || 'unknown';
-            document.getElementById('appTimestamp').textContent = new Date(data.timestamp * 1000).toLocaleString();
-            document.getElementById('weddingModeStatus').textContent = data.wedding_mode ? 'Enabled' : 'Disabled';
+            // Only update elements if they exist
+            const appVersion = document.getElementById('appVersion');
+            const appTimestamp = document.getElementById('appTimestamp');
+            const weddingModeStatus = document.getElementById('weddingModeStatus');
+            
+            if (appVersion) appVersion.textContent = data.version || 'unknown';
+            if (appTimestamp) appTimestamp.textContent = new Date(data.timestamp * 1000).toLocaleString();
+            if (weddingModeStatus) weddingModeStatus.textContent = data.wedding_mode ? 'Enabled' : 'Disabled';
             
             // Update footer version
             const versionInfo = document.getElementById('versionInfo');
@@ -51,9 +56,14 @@ function loadVersionInfo() {
         })
         .catch(error => {
             console.error('Error loading version info:', error);
-            document.getElementById('appVersion').textContent = 'Error loading';
-            document.getElementById('appTimestamp').textContent = 'Error loading';
-            document.getElementById('weddingModeStatus').textContent = 'Error loading';
+            // Only update elements if they exist
+            const appVersion = document.getElementById('appVersion');
+            const appTimestamp = document.getElementById('appTimestamp');
+            const weddingModeStatus = document.getElementById('weddingModeStatus');
+            
+            if (appVersion) appVersion.textContent = 'Error loading';
+            if (appTimestamp) appTimestamp.textContent = 'Error loading';
+            if (weddingModeStatus) weddingModeStatus.textContent = 'Error loading';
         });
 }
 
@@ -104,8 +114,23 @@ function initializeApp() {
     loadVersionInfo();
     
     Util.initializeDebugMode().then(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        currentSessionId = urlParams.get('session_id');
+        // Extract session ID from URL path (e.g., /6d859ee1 -> 6d859ee1)
+        const pathParts = window.location.pathname.split('/');
+        console.log('URL pathname:', window.location.pathname);
+        console.log('Path parts:', pathParts);
+        
+        // Check if this is a session page (URL format: /sessionId)
+        // Session IDs are 8-character alphanumeric strings
+        if (pathParts[1] && pathParts[1] !== '' && pathParts.length === 2) {
+            const potentialSessionId = pathParts[1];
+            // Only treat as session ID if it's 8 alphanumeric characters
+            if (/^[a-z0-9]{8}$/i.test(potentialSessionId)) {
+                currentSessionId = potentialSessionId;
+                console.log('Detected session ID:', currentSessionId);
+            } else {
+                console.log('Path is not a session ID:', potentialSessionId);
+            }
+        }
 
         if (currentSessionId) {
             console.log(`Initializing session: ${currentSessionId}`);
@@ -125,20 +150,19 @@ function initializeApp() {
 }
 
 function initializeSession(sessionId) {
+    console.log(`Initializing session: ${sessionId}`);
     fetchSessionToken(sessionId)
         .then(() => {
-            return fetch(`/session/${sessionId}/info`);
+            console.log('Session token fetched, now registering participant');
+            // Register participant when joining session
+            return Queue.registerParticipant(sessionId);
         })
-        .then(response => response.json())
-        .then(data => {
+        .then((participantData) => {
+            console.log('Participant registration result:', participantData);
             fetchAndUpdateQueue(sessionId);
             setInterval(() => fetchAndUpdateQueue(sessionId), 5000);
             loadInitialSearch(sessionId);
-            if (data.playlist_name && data.playlist_name !== "No playlist created") {
-                showNotification(`Session started. A new playlist "${data.playlist_name}" has been created.`, 'success');
-            } else {
-                showNotification(`Session started. No playlist could be created.`, 'warning');
-            }
+            // Don't show generic success notification - participant registration handles its own notifications
         })
         .catch(error => {
             console.error('Error initializing session:', error);
@@ -262,6 +286,15 @@ function handleSearchKeyPress(e) {
 
 function handleSearchSubmit(e) {
     e.preventDefault();
+    
+    // Hide keyboard on mobile
+    const searchInput = document.querySelector('input[name="query"]');
+    if (searchInput && Util.isMobile()) {
+        searchInput.blur();
+        return; // Don't perform search on mobile, just hide keyboard
+    }
+    
+    // Perform search on desktop (though typing already does this)
     performSearch();
 }
 

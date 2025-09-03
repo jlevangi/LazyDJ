@@ -1,6 +1,6 @@
 # sessions.py
 
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session, current_app
+from flask import Blueprint, render_template, redirect, url_for, request, jsonify, session as flask_session, current_app
 from app.models import Session, create_session, get_session, delete_session
 from app.spotify_utils import get_token, get_spotify_oauth
 from app.log_utils import format_debug_output
@@ -85,7 +85,7 @@ def create_new_session():
 
         # Now create the session
         new_session = create_session(json.dumps(token_info))
-        session['current_session_id'] = new_session.session_id
+        flask_session['current_session_id'] = new_session.session_id
         logger.info(f"New session created with ID: {new_session.session_id}")
 
         # Associate the playlist with the session
@@ -126,8 +126,8 @@ def session_view(session_id):
     qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
 
     # Store the session ID and owner's token in the user's session
-    session['current_session_id'] = session_id
-    session['token_info'] = current_session.owner_token
+    flask_session['current_session_id'] = session_id
+    flask_session['token_info'] = current_session.owner_token
 
     return render_template('session.html', session_id=session_id, qr_code_base64=qr_code_base64)
 
@@ -138,10 +138,36 @@ def get_session_token(session_id):
         return jsonify({"error": "Session not found"}), 404
 
     # Store the session ID and owner's token in the user's session
-    session['current_session_id'] = session_id
-    session['token_info'] = current_session.owner_token
+    flask_session['current_session_id'] = session_id
+    flask_session['token_info'] = current_session.owner_token
 
     return jsonify({"token": current_session.owner_token})
+
+@bp.route('/session/<session_id>/join', methods=['POST'])
+def join_session(session_id):
+    """Register a new participant when they join a session"""
+    current_session = get_session(session_id)
+    if not current_session:
+        return jsonify({"error": "Session not found"}), 404
+
+    # Check if participant already exists (from session storage)
+    existing_participant_id = flask_session.get(f'participant_id_{session_id}')
+    
+    if existing_participant_id and existing_participant_id in current_session.participants:
+        # Return existing participant info
+        participant_info = current_session.participants[existing_participant_id]
+        logger.info(f"Returning existing participant {existing_participant_id} for session {session_id}")
+    else:
+        # Create new participant
+        participant_info = current_session.add_participant()
+        # Store participant ID in user's session for future requests
+        flask_session[f'participant_id_{session_id}'] = participant_info['id']
+        logger.info(f"Created new participant {participant_info['id']} for session {session_id}")
+
+    return jsonify({
+        "participant": participant_info,
+        "participant_count": current_session.get_participant_count()
+    })
 
 @bp.route('/session/<session_id>/search')
 def session_search(session_id):
@@ -178,7 +204,73 @@ def session_search(session_id):
         logger.error(f"Unexpected error in session search: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@bp.route('/<session_id>/queue', methods=['POST'])
+@bp.route('/session/<session_id>/update_participant', methods=['POST'])
+def update_participant(session_id):
+    """Update participant information (like name)"""
+    current_session = get_session(session_id)
+    if not current_session:
+        return jsonify({"error": "Session not found"}), 404
+
+    data = request.get_json()
+    participant_id = data.get('participant_id')
+    new_name = data.get('name', '').strip()
+
+    if not participant_id or not new_name:
+        return jsonify({"error": "Missing participant_id or name"}), 400
+
+    if participant_id not in current_session.participants:
+        return jsonify({"error": "Participant not found"}), 404
+
+    # Update the participant name
+    current_session.participants[participant_id]['name'] = new_name
+    updated_participant = current_session.participants[participant_id]
+    
+    logger.info(f"Updated participant {participant_id} name to '{new_name}' in session {session_id}")
+
+    return jsonify({
+        "participant": updated_participant,
+        "message": "Name updated successfully"
+    })
+
+@bp.route('/session/<session_id>/recommendations')
+def session_recommendations(session_id):
+    """Get recommendations for a session (used for search autocomplete)"""
+    query = request.args.get('query', '').strip()
+    current_session = get_session(session_id)
+    if not current_session:
+        return jsonify({"error": "Session not found"}), 404
+
+    if not query:
+        return jsonify([])
+
+    token_info = json.loads(current_session.owner_token)
+    if not token_info:
+        return jsonify({"error": "Session owner not authenticated"}), 401
+
+    sp = spotipy.Spotify(auth=token_info['access_token'])
+    try:
+        results = sp.search(q=query, type='track', limit=10)
+        tracks = results['tracks']['items']
+
+        track_info = []
+        for track in tracks:
+            track_data = {
+                'name': track['name'],
+                'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                'album_art': track['album']['images'][0]['url'] if track['album']['images'] else None,
+                'uri': track['uri']
+            }
+            track_info.append(track_data)
+
+        return jsonify(track_info)
+    except SpotifyException as e:
+        logger.error(f"Spotify API error in session recommendations: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in session recommendations: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route('/session/<session_id>/queue', methods=['POST'])
 def session_queue(session_id):
     logger.info(f"Session queue request received for session: {session_id}")
     current_session = get_session(session_id)
@@ -189,12 +281,21 @@ def session_queue(session_id):
     track_uri = request.form.get('track_uri')
     track_name = request.form.get('track_name')
     artist_name = request.form.get('artist_name')
+    participant_id = request.form.get('participant_id')  # New field for participant tracking
 
-    logger.info(f"Attempting to add track to session {session_id}: {track_name} by {artist_name} (URI: {track_uri})")
+    logger.info(f"Attempting to add track to session {session_id}: {track_name} by {artist_name} (URI: {track_uri}) from participant: {participant_id}")
+    logger.debug(f"Session participants: {current_session.participants.keys()}")
+    logger.debug(f"Received participant_id: '{participant_id}' (type: {type(participant_id)})")
 
     if not all([track_uri, track_name, artist_name]):
         logger.warning(f"Missing track information for session {session_id}")
         return jsonify({"error": "Missing track information"}), 400
+
+    # Check for cooldown (20 minute period)
+    cooldown_period = 1200  # 20 minutes in seconds
+    if current_session.is_track_on_cooldown(track_uri, cooldown_period):
+        logger.debug(f"Track on cooldown in session: {track_name} by {artist_name}")
+        return jsonify({"status": "error", "message": "This track was recently played. Please try again later."}), 200
 
     try:
         token_info = json.loads(current_session.owner_token)
@@ -220,7 +321,9 @@ def session_queue(session_id):
             'name': track_name,
             'artists': artist_name
         }
-        current_session.add_to_queue(track)
+        logger.debug(f"Track before adding to queue: {track}")
+        current_session.add_to_queue(track, participant_id)
+        logger.debug(f"Track after adding to queue: {track}")
         logger.info(f"Added track to session queue: {track_name}")
         
         # Add track to playlist if playlist exists
@@ -281,8 +384,37 @@ def session_current_queue(session_id):
         queue_info = sp._get('me/player/queue')
         current_track = sp.currently_playing()
 
-        user_queue = current_session.get_queue()
-        radio_queue = [track for track in queue_info['queue'] if track['uri'] not in [t['uri'] for t in user_queue]]
+        # Get current Spotify queue URIs for comparison
+        current_spotify_uris = [track['uri'] for track in queue_info['queue']] if queue_info else []
+        
+        # Get session's tracked queue
+        session_queue = current_session.get_queue()
+        
+        # Split session queue into tracks still in Spotify queue vs played tracks
+        still_queued_tracks = [track for track in session_queue if track['uri'] in current_spotify_uris]
+        played_tracks = [track for track in session_queue if track['uri'] not in current_spotify_uris]
+        
+        # Update session's queue to remove played tracks
+        current_session.queue = still_queued_tracks
+        
+        # User queue contains tracks added by session participants (have added_by info)
+        user_queue = [track for track in still_queued_tracks if track.get('added_by')]
+        
+        # Radio queue contains Spotify's algorithm tracks (no added_by info) plus remaining Spotify queue
+        radio_queue = []
+        if queue_info:
+            for track in queue_info['queue']:
+                # Check if this track was added by a participant
+                participant_track = next((t for t in still_queued_tracks if t['uri'] == track['uri'] and t.get('added_by')), None)
+                
+                # If not added by participant, it's a radio track
+                if not participant_track:
+                    formatted_track = {
+                        'name': track['name'],
+                        'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                        'uri': track['uri']
+                    }
+                    radio_queue.append(formatted_track)
 
         return jsonify({
             'current_track': {
@@ -290,7 +422,9 @@ def session_current_queue(session_id):
                 'artists': ', '.join([artist['name'] for artist in current_track['item']['artists']])
             } if current_track and current_track['is_playing'] else None,
             'user_queue': user_queue,
-            'radio_queue': radio_queue[:5]  # Limit to first 5 tracks
+            'radio_queue': radio_queue[:5],  # Limit to first 5 tracks
+            'participants': current_session.participants,
+            'participant_count': current_session.get_participant_count()
         })
     except Exception as e:
         logger.error(f"Error fetching queue for session {session_id}: {str(e)}")
@@ -315,7 +449,7 @@ def create_session_playlist_route():
     logger.info("Create session playlist request received")
     try:
         # Get the current session ID from the session
-        current_session_id = session.get('current_session_id')
+        current_session_id = flask_session.get('current_session_id')
         if not current_session_id:
             raise ValueError("No active session found")
 
