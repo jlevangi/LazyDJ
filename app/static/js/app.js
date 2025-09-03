@@ -286,6 +286,15 @@ function handleSearchKeyPress(e) {
 
 function handleSearchSubmit(e) {
     e.preventDefault();
+    
+    // Hide keyboard on mobile
+    const searchInput = document.querySelector('input[name="query"]');
+    if (searchInput && Util.isMobile()) {
+        searchInput.blur();
+        return; // Don't perform search on mobile, just hide keyboard
+    }
+    
+    // Perform search on desktop (though typing already does this)
     performSearch();
 }
 

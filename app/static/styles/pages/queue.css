@@ -145,6 +145,56 @@
     margin-left: 8px;
 }
 
+/* User participant info display */
+.user-participant-info {
+    background-color: rgba(29, 185, 84, 0.1);
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    border-radius: 8px;
+    margin: 15px 20px 0 20px; /* Remove bottom margin to avoid double padding with main-content */
+    padding: 0;
+    overflow: hidden;
+}
+
+.participant-badge {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background: linear-gradient(90deg, rgba(29, 185, 84, 0.05) 0%, transparent 100%);
+}
+
+.participant-badge .participant-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.participant-text {
+    color: #FFFFFF;
+    font-size: 14px;
+}
+
+.participant-text strong {
+    color: #1DB954;
+}
+
+@media (max-width: 768px) {
+    .user-participant-info {
+        margin: 10px 15px 0 15px; /* Remove bottom margin on mobile too */
+    }
+    
+    .participant-badge {
+        padding: 8px 12px;
+    }
+}
+
 /* Empty queue */
 .queue-empty {
     color: #B3B3B3;

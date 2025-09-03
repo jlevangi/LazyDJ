@@ -347,7 +347,16 @@ def session_current_queue(session_id):
         current_track = sp.currently_playing()
 
         user_queue = current_session.get_queue()
-        radio_queue = [track for track in queue_info['queue'] if track['uri'] not in [t['uri'] for t in user_queue]]
+        # Format radio queue tracks properly (convert artist objects to string)
+        radio_queue = []
+        for track in queue_info['queue']:
+            if track['uri'] not in [t['uri'] for t in user_queue]:
+                formatted_track = {
+                    'name': track['name'],
+                    'artists': ', '.join([artist['name'] for artist in track['artists']]),
+                    'uri': track['uri']
+                }
+                radio_queue.append(formatted_track)
 
         return jsonify({
             'current_track': {

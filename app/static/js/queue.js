@@ -167,6 +167,16 @@ export function registerParticipant(sessionId) {
     const existingParticipantId = localStorage.getItem(`participant_id_${sessionId}`);
     if (existingParticipantId) {
         console.log(`Already registered as participant: ${existingParticipantId}`);
+        // Show existing participant info
+        const existingParticipantInfo = localStorage.getItem(`participant_info_${sessionId}`);
+        if (existingParticipantInfo) {
+            try {
+                const participantData = JSON.parse(existingParticipantInfo);
+                displayUserParticipantInfo(participantData);
+            } catch (e) {
+                console.error('Error parsing participant info:', e);
+            }
+        }
         // Don't show notification for returning participants
         return Promise.resolve({
             participant: { id: existingParticipantId },
@@ -193,9 +203,13 @@ export function registerParticipant(sessionId) {
         if (data.participant && data.participant.id) {
             // Store participant ID in localStorage for future requests
             localStorage.setItem(`participant_id_${sessionId}`, data.participant.id);
+            // Store participant info for displaying their icon
+            localStorage.setItem(`participant_info_${sessionId}`, JSON.stringify(data.participant));
             console.log(`Registered as participant: ${data.participant.id}`);
             // Only show notification for new participants
             showNotification('Joined as ' + data.participant.name + '!', 'success');
+            // Show user their participant icon in the UI
+            displayUserParticipantInfo(data.participant);
         } else {
             console.error('No participant data in response:', data);
         }
@@ -274,4 +288,30 @@ export function skipTrack(sessionToken = null) {
         console.error('Error skipping track:', error);
         showNotification('Error skipping track: ' + error.message, 'error');
     });
+}
+
+function displayUserParticipantInfo(participant) {
+    console.log('Displaying participant info:', participant);
+    
+    // Find or create the participant info container
+    let participantContainer = document.getElementById('user-participant-info');
+    if (!participantContainer) {
+        participantContainer = document.createElement('div');
+        participantContainer.id = 'user-participant-info';
+        participantContainer.className = 'user-participant-info';
+        
+        // Insert after the header
+        const header = document.querySelector('.header-container');
+        if (header) {
+            header.parentNode.insertBefore(participantContainer, header.nextSibling);
+        }
+    }
+    
+    // Display the participant info
+    participantContainer.innerHTML = `
+        <div class="participant-badge">
+            <span class="participant-icon" style="background-color: ${participant.color}">${participant.icon}</span>
+            <span class="participant-text">You are <strong>${participant.name}</strong></span>
+        </div>
+    `;
 }

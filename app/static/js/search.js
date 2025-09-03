@@ -101,12 +101,15 @@ function handleSearchResults(data, sessionId) {
         return;
     }
 
-    if (data.length === 0) {
+    // Handle both direct array and {tracks: [...]} structure
+    const tracks = data.tracks || data;
+    
+    if (!Array.isArray(tracks) || tracks.length === 0) {
         resultsContainer.innerHTML = '<p>No results found</p>';
         return;
     }
 
-    const resultHtml = data.map(track => `
+    const resultHtml = tracks.map(track => `
         <div class="result-item">
             ${track.album_art ? `<img src="${track.album_art}" alt="${track.name} album art" class="album-art">` : ''}
             <div class="track-info">
