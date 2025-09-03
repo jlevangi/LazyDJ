@@ -424,16 +424,39 @@ def load_event_config():
 @bp.route('/event-mode')
 def event_mode():
     """Event Mode interface for controlling music during live events"""
-    token_info = get_token()
-    if not token_info:
-        return redirect(url_for('routes.login'))
+    from app.models import get_event_owner_token, set_event_owner_token
     
     # Load event configuration including preset songs
     config = load_event_config()
     preset_songs = config.get('preset_songs', [])
     
-    logger.info("Event Mode accessed - event configuration loaded")
-    return render_template('event_mode.html', preset_songs=preset_songs)
+    # Check if we have an event owner token set
+    event_token = get_event_owner_token()
+    
+    # If no event owner token but user is authenticated, set them as event owner
+    current_user_token = get_token()
+    if not event_token and current_user_token:
+        set_event_owner_token(json.dumps(current_user_token))
+        event_token = current_user_token
+        logger.info("User set as event owner")
+    
+    # Store event token in user's session for API calls
+    if event_token:
+        if isinstance(event_token, str):
+            session['token_info'] = event_token
+        else:
+            session['token_info'] = json.dumps(event_token)
+    
+    logger.info(f"Event Mode accessed - event owner token available: {event_token is not None}")
+    return render_template('event_mode.html', preset_songs=preset_songs, has_event_owner=event_token is not None)
+
+@bp.route('/api/clear-event-owner', methods=['POST'])
+def clear_event_owner():
+    """Clear the event owner token (for when event ends)"""
+    from app.models import set_event_owner_token
+    set_event_owner_token(None)
+    logger.info("Event owner token cleared")
+    return jsonify({"status": "success", "message": "Event owner cleared"})
 
 @bp.route('/api/play-preset/<path:uri>')
 def play_preset(uri):

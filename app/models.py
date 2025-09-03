@@ -102,6 +102,7 @@ class Session:
 # In-memory stores
 active_sessions = {}
 recent_tracks = {}
+event_owner_token = None  # Global event owner token for wedding/event mode
 
 def create_session(owner_token):
     session = Session(owner_token)
@@ -118,6 +119,16 @@ def delete_session(session_id):
         logger.info(f"Deleted session: {session_id}")
     else:
         logger.warning(f"Attempted to delete non-existent session: {session_id}")
+
+def set_event_owner_token(token_info):
+    """Set the global event owner token for wedding/event mode"""
+    global event_owner_token
+    event_owner_token = token_info
+    logger.info("Event owner token set for event mode")
+
+def get_event_owner_token():
+    """Get the global event owner token for wedding/event mode"""
+    return event_owner_token
 
 def add_track_to_session(session, track_uri, track_name, artist_name):
     logger.info(f"Attempting to add track to session {session.session_id}: {track_name} by {artist_name} (URI: {track_uri})")
